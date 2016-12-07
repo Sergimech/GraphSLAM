@@ -1,2 +1,2 @@
 # graph_slam
-An Indigo ROS Implemented Graph-based SLAM.
+A ROS Implementation of Graph-based SLAM.
