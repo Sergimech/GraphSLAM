@@ -11,7 +11,7 @@
 #include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "visualization_msgs/Marker.h"
-#include "graphslam/pose_laser.h"
+#include "pose_laser.h"
 //
 #include "graph.h"
 #include "scanmatcher.h"

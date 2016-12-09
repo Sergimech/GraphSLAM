@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(graph_slam)
+add_definitions(-std=c++11)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_modules")
 
@@ -22,11 +23,11 @@ endif( NOT G2O_FOUND )
 
 include_directories(${CSPARSE_INCLUDE_DIR})
 include_directories(${EIGEN3_INCLUDE_DIR})
-#include_directories(${G2O_INCLUDE_DIR})
+include_directories(${G2O_INCLUDE_DIR})
 
-#add_library(graph src/graph.cpp)
-#add_library(scanmatcher src/scanmatcher.cpp)
-#add_executable(graph_slam src/graphslam.cpp)
+add_library(graph src/graph.cpp)
+add_library(scanmatcher src/scanmatcher.cpp)
+add_executable(graph_slam src/graphslam.cpp)
 #add_executable(sm_node src/sm_node.cpp)
 #target_link_libraries(graph_slam graph ${Eigen_LIBRARIES})
 #target_link_libraries(sm_node scanmatcher ${Eigen_LIBRARIES})

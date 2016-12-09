@@ -5,68 +5,65 @@ using namespace geometry_msgs;
 
 //
 GraphSlam::GraphSlam(ros::NodeHandle& nh) {
-	//
-	map_publish = nh.advertise<nav_msgs::OccupancyGrid> ("/map", 1, false);
-	pose_publish = nh.advertise<geometry_msgs::PoseArray>("/pose", 1);
-	graph_publish = nh.advertise<visualization_msgs::Marker>("/graph_vis", 1);
-	// Check if parameters are set correctly
-	if (!nh.hasParam("graphslam/resolution"))
-    	ROS_WARN("No param named 'graphslam/resolution'");
-	//
-	nh.param("graphslam/resolution", resolution, 0.05);
-    nh.param("graphslam/solve_iterations", solve_iterations, 20);
-    // After this distance, a new node will be added to the graph
-    nh.param("graphslam/min_node_dist", min_node_dist, 0.25);
-    nh.param("graphslam/min_node_rot", min_node_rot, 0.30);
-    //
-    nh.param("graphslam/max_laser_range", max_laser_range, 4.5);
-    nh.param("graphslam/min_laser_range", min_laser_range, 0.1);
-    //
-    nh.param("graphslam/solve_after_nodes", solve_after_nodes, 10);
-    //
-    if(!nh.getParam("graphslam/scan_topic", scan_topic))
-    	scan_topic = "base_scan";
-	//
-	odom_updated = false;
-	scan_updated = false;
-	first_scan = true;
-	// Set the initial pose for the graph and scanmatcher to 0,0,0
-	cur_sm_pose.x = 0.;
-	cur_sm_pose.y = 0.;
-	cur_sm_pose.theta = 0;
-	//
-	prev_graph_pose.position.x = 0;
-	prev_graph_pose.position.y = 0;
-	prev_graph_pose.orientation = tf::createQuaternionMsgFromYaw(0);
-	//
-	graph = new Graph(resolution, range_t, max_laser_range, min_laser_range);	
-	// Subscribe to odom an laser scan messages
-	laserScan_Sub = nh.subscribe(scan_topic, 1, &GraphSlam::laserScan_callback, this);
-	pose_Sub = nh.subscribe("pose_laser", 1, &GraphSlam::pose_callback, this);
-}
-;
+  //
+  map_publish = nh.advertise<nav_msgs::OccupancyGrid> ("/map", 1, false);
+  pose_publish = nh.advertise<geometry_msgs::PoseArray>("/pose", 1);
+  graph_publish = nh.advertise<visualization_msgs::Marker>("/graph_vis", 1);
+  // Check if parameters are set correctly
+  if (!nh.hasParam("graphslam/resolution"))
+    ROS_WARN("No param named 'graphslam/resolution'");
+  //
+  nh.param("graphslam/resolution", resolution, 0.05);
+  nh.param("graphslam/solve_iterations", solve_iterations, 20);
+  // After this distance, a new node will be added to the graph
+  nh.param("graphslam/min_node_dist", min_node_dist, 0.25);
+  nh.param("graphslam/min_node_rot", min_node_rot, 0.30);
+  //
+  nh.param("graphslam/max_laser_range", max_laser_range, 4.5);
+  nh.param("graphslam/min_laser_range", min_laser_range, 0.1);
+  //
+  nh.param("graphslam/solve_after_nodes", solve_after_nodes, 10);
+  //
+  if(!nh.getParam("graphslam/scan_topic", scan_topic))
+    scan_topic = "base_scan";
+  //
+  odom_updated = false;
+  scan_updated = false;
+  first_scan = true;
+  // Set the initial pose for the graph and scanmatcher to 0,0,0
+  cur_sm_pose.x = 0.;
+  cur_sm_pose.y = 0.;
+  cur_sm_pose.theta = 0;
+  //
+  prev_graph_pose.position.x = 0;
+  prev_graph_pose.position.y = 0;
+  prev_graph_pose.orientation = tf::createQuaternionMsgFromYaw(0);
+  //
+  graph = new Graph(resolution, range_t, max_laser_range, min_laser_range);	
+  // Subscribe to odom an laser scan messages
+  laserScan_Sub = nh.subscribe(scan_topic, 1, &GraphSlam::laserScan_callback, this);
+  pose_Sub = nh.subscribe("pose_laser", 1, &GraphSlam::pose_callback, this);
+};
 
 GraphSlam::~GraphSlam() {
 	delete graph;
-}
-;
+};
 
 void GraphSlam::laserScan_callback(const LaserScan::ConstPtr& msg){	
-	// Check if a node will get added to the graph
-	if(first_scan) {
-		//ROS_INFO("Odom and scan updated!");
-		scan_updated = true;
-		// cur_scan = msg;
-		// This means the robot is at the origin.
-		if(!odom_updated && first_scan) {
-			odom_updated = true;
-			scan_updated = true;
-		}
-		first_scan = false;
-		cur_scan = *msg;
-	}
-}
-;
+  // Check if a node will get added to the graph
+  if(first_scan) {
+    //ROS_INFO("Odom and scan updated!");
+    scan_updated = true;
+    // cur_scan = msg;
+    // This means the robot is at the origin.
+    if(!odom_updated && first_scan) {
+      odom_updated = true;
+      scan_updated = true;
+    }
+    first_scan = false;
+    cur_scan = *msg;
+  }
+};
 
 void GraphSlam::pose_callback(const graphslam::pose_laser& msg){
 	if(!first_scan) {
