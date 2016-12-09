@@ -6,7 +6,7 @@
 #include "tf/transform_listener.h"
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/PoseStamped.h"
-#include "graphslam/pose_laser.h"
+#include "pose_laser.h"
 //
 #include "scanmatcher.h"
 #include "graphnodes.h"
