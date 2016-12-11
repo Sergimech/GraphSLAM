@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(graph_slam)
+project(graphslam)
 add_definitions(-std=c++11)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_modules")
