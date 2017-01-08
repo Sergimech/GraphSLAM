@@ -1,0 +1,3 @@
+{
+	"shell_cmd": "catkin_make /home/s/graphslam"
+}
