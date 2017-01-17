@@ -15,6 +15,5 @@
         <cylinder length="0.6" radius="0.2"/>
       </geometry>
     </collision>
-  </link>
-  
+  </link>  
 </robot>
