@@ -11,54 +11,25 @@ public:
     vel_sub = n.subscribe("/cmd_vel", 50, &Odometry::callback, this);
     current_time = ros::Time::now();
     last_time = ros::Time::now();
-    wheel_base = 0.225;
-    wheel_radius = 0.03;
-    ticks_per_rotation = 2199.6;
-    current_right_wheel_encoder_count = 0;
-    current_left_wheel_encoder_count = 0;
-    last_right_wheel_encoder_count = 0;
-    last_left_wheel_encoder_count = 0;
-    linear_vel = 0.0;
-    angular_vel = 0.0;
+    vx = 0.0;
+    vy = 0.0;
+    vth = 0.0;
     x = 0.0;
     y = 0.0;
     th = 0.0;
   }
 
   void initiate() {
-    ros::Rate r(1.0);
-
     while(n.ok()) {
       current_time = ros::Time::now();
-      double delta_time = (current_time - last_time).toSec();
-      double right_wheel_velocity = right_wheel_vel(linear_vel, angular_vel);
-      double left_wheel_velocity = left_wheel_vel(linear_vel, angular_vel);
-
-      ROS_INFO("##########################");
-      ROS_INFO("delta_time[%f], right_wheel_velocity[%f], left_wheel_velocity[%f]", delta_time, right_wheel_velocity, left_wheel_velocity);
+      double delta_t = (current_time - last_time).toSec();
+      double delta_x = (vx * cos(th) - vy * sin(th)) * delta_t;
+      double delta_y = (vx * sin(th) + vy * cos(th)) * delta_t;
+      double delta_th = vth * delta_t;
       
-      right_wheel_update(right_wheel_velocity, delta_time);
-      left_wheel_update(left_wheel_velocity, delta_time);
-
-      double delta_tick_right = current_right_wheel_encoder_count - last_right_wheel_encoder_count;
-      double delta_tick_left = current_left_wheel_encoder_count - last_left_wheel_encoder_count;
-
-      ROS_INFO("delta_tick_right[%f], delta_tick_left[%f]", delta_tick_right, delta_tick_left);
-
-      double right_wheel_distance = wheel_distance(delta_tick_right);
-      double left_wheel_distance = wheel_distance(delta_tick_left);
-
-      ROS_INFO("right_wheel_distance[%f], left_wheel_distance[%f]", right_wheel_distance, left_wheel_distance);
-
-      double center_wheel_distance = ( right_wheel_distance + left_wheel_distance ) / 2;
-
-      ROS_INFO("center_wheel_distance[%f]", center_wheel_distance);
- 
-      x += ( center_wheel_distance * cos( th ) );
-      y += ( center_wheel_distance * sin( th ) );
-      th += ( ( right_wheel_distance - left_wheel_distance ) / wheel_base );
-
-      ROS_INFO("x[%f], y[%f], th[%f]", x, y, th);
+      x += delta_x;
+      y += delta_y;
+      th += delta_th;
 
       geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
 
@@ -84,18 +55,14 @@ public:
       odom.pose.pose.orientation = odom_quat;
 
       odom.child_frame_id = "base_link";
-      odom.twist.twist.linear.x = linear_vel;
-      odom.twist.twist.linear.y = 0.0;
-      odom.twist.twist.angular.z = angular_vel;
+      odom.twist.twist.linear.x = vx;
+      odom.twist.twist.linear.y = vy;
+      odom.twist.twist.angular.z = vth;
 
       odom_pub.publish(odom);
 
       last_time = current_time;
-      last_right_wheel_encoder_count = current_right_wheel_encoder_count;
-      last_left_wheel_encoder_count = current_left_wheel_encoder_count;
-
       ros::spinOnce();
-      r.sleep();
     }
   }
 
@@ -105,35 +72,13 @@ private:
   ros::Subscriber vel_sub;
   tf::TransformBroadcaster odom_broadcaster;
   ros::Time current_time, last_time;
-  double wheel_base, wheel_radius;
-  double linear_vel, angular_vel;
-  double current_left_wheel_encoder_count, current_right_wheel_encoder_count, last_left_wheel_encoder_count, last_right_wheel_encoder_count;
+  double vx, vy, vth;
   double x, y, th;
-  double ticks_per_rotation;
-
-  double right_wheel_vel(double linear_velocity, double angular_velocity) {
-    return ( ( 2 * linear_velocity ) + ( angular_velocity * wheel_base ) ) / ( 2 * wheel_radius );
-  }
-
-  double left_wheel_vel(double linear_velocity, double angular_velocity) {
-    return ( ( 2 * linear_velocity ) - ( angular_velocity * wheel_base ) ) / ( 2 * wheel_radius );
-  }
-
-  double wheel_distance(int delta_tick) {
-    return ( 2 * M_PI * wheel_radius ) * ( delta_tick / ticks_per_rotation );
-  }
-
-  void right_wheel_update(double right_wheel_velocity, double time) {
-    current_right_wheel_encoder_count += ( ( right_wheel_velocity * time ) / ( 2 * M_PI * wheel_radius ) ) * ticks_per_rotation;  
-  }
-
-  void left_wheel_update(double left_wheel_velocity, double time) {
-    current_left_wheel_encoder_count += ( ( left_wheel_velocity * time ) / ( 2 * M_PI * wheel_radius ) ) * ticks_per_rotation;
-  }
-
+  
   void callback(const geometry_msgs::Twist::ConstPtr& input) {
-    linear_vel = input->linear.x;
-    angular_vel = input->angular.z;
+    vx = input->linear.x;
+    vy = input->linear.y;
+    vth = input->angular.z;
   }
 };
 
