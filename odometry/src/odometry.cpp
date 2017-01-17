@@ -54,12 +54,6 @@ public:
 
       ROS_INFO("center_wheel_distance[%f]", center_wheel_distance);
  
-      double delta_x = ( center_wheel_distance * cos( th ) );
-      double delta_y = ( center_wheel_distance * sin( th ) );
-      double delta_th = ( ( right_wheel_distance - left_wheel_distance ) / wheel_base );
-
-      ROS_INFO("delta_x[%f], delta_y[%f], delta_th[%f]", delta_x, delta_y, delta_th);
-
       x += ( center_wheel_distance * cos( th ) );
       y += ( center_wheel_distance * sin( th ) );
       th += ( ( right_wheel_distance - left_wheel_distance ) / wheel_base );
@@ -122,7 +116,7 @@ private:
   }
 
   double left_wheel_vel(double linear_velocity, double angular_velocity) {
-    return ( ( 2 * linear_velocity ) + ( angular_velocity * wheel_base ) ) / ( 2 * wheel_radius );
+    return ( ( 2 * linear_velocity ) - ( angular_velocity * wheel_base ) ) / ( 2 * wheel_radius );
   }
 
   double wheel_distance(int delta_tick) {
