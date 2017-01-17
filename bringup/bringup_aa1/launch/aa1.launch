@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="robot_description" textfile="$(find aa1)/aa1.urdf" />
+  <node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find bringup_aa1)/rviz_cfg/aa1.rviz"/>
+  <node pkg="differential_drive" type="differential_drive" name="differential_drive"/>
+<!--
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" /> 
+-->
+</launch>
