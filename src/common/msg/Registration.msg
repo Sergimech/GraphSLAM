@@ -1,0 +1,7 @@
+bool keyframe_flag
+bool loop_closure_flag
+common/Keyframe keyframe_new
+common/Keyframe keyframe_last
+common/Keyframe keyframe_loop
+common/Factor factor_new
+common/Factor factor_loop
