@@ -11,15 +11,15 @@ void new_factor(common::Registration input) {
   input.keyframe_new.id = keyframe_IDs++;
 
   Eigen::MatrixXd Q(3, 3);
-  Q << input.factor_new.delta.covariance[0],
-    input.factor_new.delta.covariance[1],
-    input.factor_new.delta.covariance[2],
-    input.factor_new.delta.covariance[3],
-    input.factor_new.delta.covariance[4],
-    input.factor_new.delta.covariance[5],
-    input.factor_new.delta.covariance[6],
-    input.factor_new.delta.covariance[7],
-    input.factor_new.delta.covariance[8];
+  Q(0, 0) = input.factor_new.delta.covariance[0];
+  Q(0, 1) = input.factor_new.delta.covariance[1];
+  Q(0, 2) = input.factor_new.delta.covariance[2];
+  Q(1, 0) = input.factor_new.delta.covariance[3];
+  Q(1, 1) = input.factor_new.delta.covariance[4];
+  Q(1, 2) = input.factor_new.delta.covariance[5];
+  Q(2, 0) = input.factor_new.delta.covariance[6];
+  Q(2, 1) = input.factor_new.delta.covariance[7];
+  Q(2, 2) = input.factor_new.delta.covariance[8];
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
@@ -40,15 +40,15 @@ void new_factor(common::Registration input) {
 
 void loop_factor(common::Registration input) {
   Eigen::MatrixXd Q(3, 3);
-  Q << input.factor_new.delta.covariance[0],
-    input.factor_new.delta.covariance[1],
-    input.factor_new.delta.covariance[2],
-    input.factor_new.delta.covariance[3],
-    input.factor_new.delta.covariance[4],
-    input.factor_new.delta.covariance[5],
-    input.factor_new.delta.covariance[6],
-    input.factor_new.delta.covariance[7],
-    input.factor_new.delta.covariance[8];
+  Q(0, 0) = input.factor_loop.delta.covariance[0];
+  Q(0, 1) = input.factor_loop.delta.covariance[1];
+  Q(0, 2) = input.factor_loop.delta.covariance[2];
+  Q(1, 0) = input.factor_loop.delta.covariance[3];
+  Q(1, 1) = input.factor_loop.delta.covariance[4];
+  Q(1, 2) = input.factor_loop.delta.covariance[5];
+  Q(2, 0) = input.factor_loop.delta.covariance[6];
+  Q(2, 1) = input.factor_loop.delta.covariance[7];
+  Q(2, 2) = input.factor_loop.delta.covariance[8];
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_loop.id_1,
 					       input.factor_loop.id_2,
@@ -121,8 +121,13 @@ int main(int argc, char** argv) {
 
   keyframe_IDs = 0;
 
-  gtsam::noiseModel::Gaussian::shared_ptr priorNoise =
-    gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) << 0.3, 0.3, 0.1));
+  Eigen::MatrixXd Q(3, 3);
+  Q.Zero(3, 3);
+  Q(0, 0) = 0.1;
+  Q(1, 1) = 0.1;
+  Q(2, 2) = 0.1;
+  
+  gtsam::noiseModel::Gaussian::shared_ptr priorNoise = gtsam::noiseModel::Gaussian::Covariance( Q );
   graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(1, gtsam::Pose2(0, 0, 0), priorNoise));
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
