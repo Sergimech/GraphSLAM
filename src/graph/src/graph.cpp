@@ -90,25 +90,12 @@ void loop_factor(common::Registration input) {
 }
 
 void solve() {
-  gtsam::Values optimized_result = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
-  gtsam::Marginals marginals(graph, optimized_result);
+  gtsam::Values poses_opti = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
+  gtsam::Marginals marginals(graph, poses_opti);
 
-  // JS: remove once debugged
-  optimized_result.print("\nLatest Result:\n");
-  marginals.print("\nMarginals\n");
-
-  // update keyframes with optimization result
   for(int i = 0; i < keyframes.size(); i++) {
-    //DS: Update of odom_opti.pose - Values
-    //DS: Update of odom_opti.covariance - Marginals
-      //JS: Use the ideas in Slack from JS on 6/3/17, e.g.
-      //      Values poses_opt = LevenbergMarquardtOptimizer(graph,initial).optimize()
-      //      Marginals marginals(graph,poses_opt);
-      //      [...]
-      //      for (id = 1 : all_ids) {
-      //        keyframe(id).pose_opt.pose = poses_opt.at(id);
-      //        keyFrame(id).pose_opt.covariance = marginals.marginalCovariance(id);
-      //      }
+    //keyframes[i].pose_opti.pose = poses_opti.at(keyframes[i].id);
+    //keyframes[i].pose_opti.covariance = marginals.marginalCovariance(keyframes[i].id);
   }
 }
 
