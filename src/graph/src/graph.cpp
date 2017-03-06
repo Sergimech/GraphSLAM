@@ -1,5 +1,6 @@
 #include <vector>
 #include <math.h>
+#include <iostream>
 
 #include <ros/ros.h>
 
@@ -50,7 +51,7 @@ common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, commo
 void new_factor(common::Registration input) {
   input.factor_new.id_2 = keyframe_IDs;
   input.keyframe_new.id = keyframe_IDs++;
-  registrations.push_back(input.keyframe_new);
+  keyframes.push_back(input.keyframe_new);
   
   gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
@@ -84,6 +85,11 @@ void loop_factor(common::Registration input) {
 					       gtsam::Pose2(input.factor_loop.delta.pose.x,
 							    input.factor_loop.delta.pose.y,
 							    input.factor_loop.delta.pose.theta), delta_Model));
+}
+
+void solve() {
+  gtsam::Values optimized_result = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
+  
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
