@@ -76,8 +76,6 @@ void new_factor(common::Registration input) {
 }
 
 void loop_factor(common::Registration input) {
-// JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter,
-    // so you can insert directly factor_loop.delta.covariance instead of a Vector3(stuff) which only considers the diagonal
   Eigen::MatrixXd Q(3, 3);
   Q(0, 0) = input.factor_loop.delta.covariance[0];
   Q(1, 1) = input.factor_loop.delta.covariance[4];
