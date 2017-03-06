@@ -23,10 +23,9 @@
 #include <boost/algorithm/string/classification.hpp>
 
 gtsam::NonlinearFactorGraph graph;
-gtsam::Diagonal::shared_ptr priorNoise;
 gtsam::Values initial;
-
 common::Pose2DWithCovariance pose_opt;
+std::vector<common::Registration> registrations;
 
 int keyframe_IDs;
 
@@ -49,7 +48,8 @@ common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, commo
 
 void new_factor(common::Registration input) {
   input.keyframe_new.id_2 = keyframe_IDs++;
-  gtsam::noiseModel::Diagonal::shared_ptr deltaModel =
+  registrations.push_back(input);
+  gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
 					 input.factor_new.delta.covariance[0],
 					 input.factor_new.delta.covariance[4],
@@ -66,29 +66,43 @@ void new_factor(common::Registration input) {
 						     input.id_2,
 						     gtsam::Pose2(input.factor_new.delta.pose.x,
 								  input.factor_new.delta.pose.y,
-								  input.factor_new.delta.pose.theta), deltaModel));
+								  input.factor_new.delta.pose.theta), delta_Model));
 }
 
 void loop_factor(common::Registrationn input) {
-  gtsam::noiseModel::Diagonal::shared_ptr noiseModel =
+  gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
-					 input.delta.covariance[0],
-					 input.delta.covariance[4],
-					 input.delta.covariance[9]));
+					 input.factor_loop.delta.covariance[0],
+					 input.factor_loop.delta.covariance[4],
+					 input.factor_loop.delta.covariance[9]));
+  
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.id_1,
 					       input.id_2,
-					       gtsam::Pose2(input.delta.pose.x,
-							    input.delta.pose.y,
-							    input.delta.pose.theta), noiseModel));
+					       gtsam::Pose2(input.factor_loop.delta.pose.x,
+							    input.factor_loop.delta.pose.y,
+							    input.factor_loop.delta.pose.theta), delta_Model));
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
-  if(!graph.empty()) {
+  if(!registrations.empty()) {
+    res.keyframe_last = registrations[registrations.size() - 1].keyframe_new;
+    return true;
   }
   
   return false;
+}
 
 bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyframe::Response &res) {
+  std::vector<double> distances;
+
+  for(int i = 0; i < registrations.size() - 10; i++) {
+    double x1 = req.;
+    double x2 = ;
+    double y1 = ;
+    double y2 = ;
+    distances.push_back(sqrt( pow( )))
+  }
+  
   return true;
 }
 
@@ -108,7 +122,15 @@ int main(int argc, char** argv) {
 
   keyframe_IDs = 0;
 
-  priorNoise = noiseModel::Diagonal::Sigmas((gtsam::Vector(3) << 0.3, 0.3, 0.1));
+  gtsam::Diagonal::shared_ptr priorNoise priorNoise =
+    noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
+				  0.3,
+				  0.3,
+				  0.1));
+  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(1,
+						   gtsam::Pose2(0, 0, 0),
+						   priorNoise));
+  
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
   ros::ServiceServer last_keyframe_service = n.advertiseService("/graph/last_keyframe", last_keyframe);
 
