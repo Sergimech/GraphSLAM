@@ -31,6 +31,7 @@ std::vector<common::Keyframe> keyframes;
 
 int keyframe_IDs;
 
+// JS: This function should be available all across GraphSLAM. Can we move it to 'common' ?
 common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, common::Pose2DWithCovariance input_2) {
   common::Pose2DWithCovariance output;
   double input_1_th = input_1.pose.theta;
