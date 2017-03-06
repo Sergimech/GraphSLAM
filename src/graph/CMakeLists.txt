@@ -10,7 +10,9 @@ find_package(GTSAM REQUIRED)
 
 catkin_package()
 
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS})
 
 add_executable(graph src/graph.cpp)
 target_link_libraries(graph ${catkin_LIBRARIES} gtsam)
