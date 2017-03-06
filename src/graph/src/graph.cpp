@@ -68,6 +68,9 @@ void solve() {
     //keyframes[i].pose_opti.pose = poses_opti.at(keyframes[i].id);
     //keyframes[i].pose_opti.covariance = marginals.marginalCovariance(keyframes[i].id);
   }
+
+  // JS: make initial take the last solution, so that next iteration is simpler:
+  initial = poses_opti;
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
