@@ -92,12 +92,10 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       double sigma_y_squared = k_disp_disp * Dl;
       double sigma_th_squared = ( k_rot_disp * Dl ) + ( k_rot_rot * Dth );
 
-      // JS: Rename C_l --> Q
-      Eigen::MatrixXd C_l(6, 6); // JS: Use 3x3 cov matrix
+      Eigen::MatrixXd Q(3, 3);
       C_l(0, 0) = sigma_x_squared;
       C_l(1, 1) = sigma_y_squared;
-      C_l(5, 5) = sigma_th_squared; // JS: here is (2,2)
- 
+      C_l(2, 2) = sigma_th_squared;
 
       common::Pose2DWithCovariance Delta;
 
@@ -105,9 +103,9 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       Delta.pose.y = Dy;
       Delta.pose.theta = Dth;
     
-      for(int i = 0; i < C_l.rows(); i++) {
-	for(int j = 0; j < C_l.cols(); j++) {
-	  Delta.covariance[( i * C_l.rows() ) + j] = C_l(i, j);
+      for(int i = 0; i < Q.rows(); i++) {
+	for(int j = 0; j < Q.cols(); j++) {
+	  Delta.covariance[( i * Q.rows() ) + j] = C_l(i, j);
 	}
       }
     
