@@ -59,7 +59,7 @@ void new_factor(common::Registration input) {
 					     input.factor_new.delta.covariance[9]));
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
-  
+
   keyframes.push_back(input.keyframe_new);
 
   initial.insert(input.factor_new.id_2,
@@ -75,6 +75,11 @@ void new_factor(common::Registration input) {
 }
 
 void loop_factor(common::Registration input) {
+    // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
+    // JS: this Gaussian::Covariance model should be used in all the project, not just here
+
+// JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter,
+    // so you can insert directly factor_loop.delta.covariance instead of a Vector3(stuff) which only considers the diagonal
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model =
     gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) <<
 					     input.factor_loop.delta.covariance[0],
@@ -86,19 +91,23 @@ void loop_factor(common::Registration input) {
 					       gtsam::Pose2(input.factor_loop.delta.pose.x,
 							    input.factor_loop.delta.pose.y,
 							    input.factor_loop.delta.pose.theta), delta_Model));
+
 }
 
 void solve() {
   gtsam::Values optimized_result = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
-  optimized_result.print("\nLatest Result:\n");
   gtsam::Marginals marginals(graph, optimized_result);
+
+  // JS: remove once debugged
+  optimized_result.print("\nLatest Result:\n");
   marginals.print("\nMarginals\n");
 
+  // update keyframes with optimization result
   for(int i = 0; i < keyframes.size(); i++) {
     //DS: Update of odom_opti.pose - Values
     //DS: Update of odom_opti.covariance - Marginals
       //JS: Use the ideas in Slack from JS on 6/3/17, e.g.
-      //      Values poses_opt = NonLinearFactorgraph(graph,initial).optimize()
+      //      Values poses_opt = LevenbergMarquardtOptimizer(graph,initial).optimize()
       //      Marginals marginals(graph,poses_opt);
       //      [...]
       //      for (id = 1 : all_ids) {
