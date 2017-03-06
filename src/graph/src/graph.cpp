@@ -60,12 +60,6 @@ void new_factor(common::Registration input) {
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
   
-  // JS: put this pose_new into the new KF:
-  //
-  // KeyFrame kf_new = input.keyframe_new
-  // kf_new.id = keyframe_IDs
-  // kf_new.pose_opt = pose_new
-  // keyframes.push_back(input.keyframe_new);
   keyframes.push_back(input.keyframe_new);
 
   initial.insert(input.factor_new.id_2,
@@ -81,9 +75,6 @@ void new_factor(common::Registration input) {
 }
 
 void loop_factor(common::Registration input) {
-
-    // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
-    // JS: this Gaussian::Covariance model should be used in all the project, not just here
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model =
     gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) <<
 					     input.factor_loop.delta.covariance[0],

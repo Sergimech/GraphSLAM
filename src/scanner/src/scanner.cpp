@@ -113,6 +113,7 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       }
     
       output.factor_new.delta = Delta;
+      output.factor_loop.delta = Delta;
       output.keyframe_flag = true;
     } else {
       output.keyframe_flag = false;
@@ -135,7 +136,10 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
     
     output.keyframe_flag = registration_last.keyframe_flag;
-      
+    output.loop_closure_flag = false;
+    output.keyframe_new.ts = input.header.stamp;
+    output.factor_new.delta = registration_last.factor_new.delta;
+          
     common::ClosestKeyframe keyframe_closest_request;
     keyframe_closest_request.request.keyframe_last = keyframe_last_request.response.keyframe_last;
     bool keyframe_closest_request_returned = keyframe_closest_client.call(keyframe_closest_request);
@@ -144,7 +148,8 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
       sensor_msgs::PointCloud2 keyframe_closest_pointcloud =
 	keyframe_closest_request.response.keyframe_closest.pointcloud;
       common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
-      
+      output.factor_loop.delta = registration_closest.factor_loop.delta;
+      output.loop_closure_flag = registration_closest.keyframe_flag;
     }
   } else {
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
