@@ -88,7 +88,9 @@ void loop_factor(common::Registration input) {
 
     // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
     // JS: this Gaussian::Covariance model should be used in all the project, not just here
-// JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter
+
+// JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter,
+    // so you can insert directly factor_loop.delta.covariance instead of a Vector3(stuff) which only considers the diagonal
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model =
     gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) <<
 					     input.factor_loop.delta.covariance[0],
