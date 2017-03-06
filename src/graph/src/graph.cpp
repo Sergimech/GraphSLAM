@@ -1,4 +1,5 @@
 #include <vector>
+#include <math.h>
 
 #include <ros/ros.h>
 
@@ -25,7 +26,7 @@
 gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
-std::vector<common::Registration> registrations;
+std::vector<common::Keyframe> keyframes;
 
 int keyframe_IDs;
 
@@ -47,45 +48,47 @@ common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, commo
 }
 
 void new_factor(common::Registration input) {
-  input.keyframe_new.id_2 = keyframe_IDs++;
-  registrations.push_back(input);
+  input.factor_new.id_2 = keyframe_IDs;
+  input.keyframe_new.id = keyframe_IDs++;
+  registrations.push_back(input.keyframe_new);
+  
   gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
 					 input.factor_new.delta.covariance[0],
 					 input.factor_new.delta.covariance[4],
 					 input.factor_new.delta.covariance[9]));
 
-  common::Pose2DWithCovariance pose_new = compose(input.keyframe_new.pose_opti, input.factor_new.delta);
+  common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
   
-  initial.insert(input.id_2,
+  initial.insert(input.factor_new.id_2,
 		 gtsam::Pose2(pose_new.pose.x,
 			      pose_new.pose.y,
 			      pose_new.pose.theta));
   
-  graph.push_back(gtsam::BetweenFactor<gtsam::Pose2>(input.id_1,
-						     input.id_2,
+  graph.push_back(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_new.id_1,
+						     input.factor_new.id_2,
 						     gtsam::Pose2(input.factor_new.delta.pose.x,
 								  input.factor_new.delta.pose.y,
 								  input.factor_new.delta.pose.theta), delta_Model));
 }
 
-void loop_factor(common::Registrationn input) {
+void loop_factor(common::Registration input) {
   gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
 					 input.factor_loop.delta.covariance[0],
 					 input.factor_loop.delta.covariance[4],
 					 input.factor_loop.delta.covariance[9]));
   
-  graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.id_1,
-					       input.id_2,
+  graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_loop.id_1,
+					       input.factor_loop.id_2,
 					       gtsam::Pose2(input.factor_loop.delta.pose.x,
 							    input.factor_loop.delta.pose.y,
 							    input.factor_loop.delta.pose.theta), delta_Model));
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
-  if(!registrations.empty()) {
-    res.keyframe_last = registrations[registrations.size() - 1].keyframe_new;
+  if(!keyframes.empty()) {
+    res.keyframe_last = keyframes.back();
     return true;
   }
   
@@ -93,17 +96,29 @@ bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Res
 }
 
 bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyframe::Response &res) {
-  std::vector<double> distances;
+  if(!keyframes.empty()) {
+    std::vector<double> distances;
 
-  for(int i = 0; i < registrations.size() - 10; i++) {
-    double x1 = req.;
-    double x2 = ;
-    double y1 = ;
-    double y2 = ;
-    distances.push_back(sqrt( pow( )))
+    for(int i = 0; i < keyframes.size() - 10; i++) {
+      double x1 = req.keyframe_last.pose_opti.pose.x;
+      double y1 = req.keyframe_last.pose_opti.pose.y;
+      double x2 = keyframes[i].pose_opti.pose.x;
+      double y2 = keyframes[i].pose_opti.pose.y;
+      distances.push_back( sqrt( pow( x2 - x1, 2 ) + pow( y2 - y1, 2 ) ) );
+    }
+
+    int minimum_keyframe_index = 0;
+    for(int i = 0; i < distances.size(); i++) {
+      if(distances[i] < distances[minimum_keyframe_index]) {
+	minimum_keyframe_index = i;
+      }
+    }
+
+    res.keyframe_closest = keyframes[minimum_keyframe_index];
+    return true;
   }
   
-  return true;
+  return false;
 }
 
 void registration_callback(const common::Registration& input) {
@@ -122,17 +137,14 @@ int main(int argc, char** argv) {
 
   keyframe_IDs = 0;
 
-  gtsam::Diagonal::shared_ptr priorNoise priorNoise =
-    noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
-				  0.3,
-				  0.3,
-				  0.1));
-  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(1,
-						   gtsam::Pose2(0, 0, 0),
-						   priorNoise));
+  gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
+    gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) << 0.3, 0.3, 0.1));
+  
+  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(1, gtsam::Pose2(0, 0, 0), priorNoise));
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
   ros::ServiceServer last_keyframe_service = n.advertiseService("/graph/last_keyframe", last_keyframe);
+  ros::ServiceServer closest_keyframe_service = n.advertiseService("/graph/closest_keyframe", closest_keyframe);
 
   ros::spin();
   return 0;
