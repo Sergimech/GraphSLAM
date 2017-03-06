@@ -91,6 +91,12 @@ void solve() {
   gtsam::Values optimized_result = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
   optimized_result.print("\nLatest Result:\n");
   gtsam::Marginals marginals(graph, optimized_result);
+  marginals.print("\nMarginals\n");
+
+  for(int i = 0; i < keyframes.size(); i++) {
+    //DS: Update of odom_opti.pose - Values
+    //DS: Update of odom_opti.covariance - Marginals
+  }
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
@@ -146,7 +152,6 @@ int main(int argc, char** argv) {
 
   gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) << 0.3, 0.3, 0.1));
-  
   graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(1, gtsam::Pose2(0, 0, 0), priorNoise));
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);

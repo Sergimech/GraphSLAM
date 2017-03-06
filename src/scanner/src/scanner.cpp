@@ -11,6 +11,8 @@
 #include <common/Keyframe.h>
 #include <common/Registration.h>
 #include <common/Pose2DWithCovariance.h>
+#include <common/LastKeyframe.h>
+#include <common/ClosestKeyframe.h>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/conversions.h>
@@ -22,6 +24,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 ros::Publisher registration_pub;
+ros::ServiceClient keyframe_last_client;
+ros::ServiceClient keyframe_closest_client;
 
 common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::MatrixXd m) {
   common::Pose2DWithCovariance output;
@@ -118,7 +122,23 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
 }
 
 void scanner_callback(const sensor_msgs::LaserScan& input) {
-  
+  common::LastKeyframe keyframe_last_request;
+  bool keyframe_last_request_returned = keyframe_last_client.call(keyframe_last_request);
+
+  if(keyframe_last_request_returned) {
+    sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
+    sensor_msgs::PointCloud2 keyframe_last_pointcloud = keyframe_last_request.response.keyframe_last.pointcloud;
+    common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
+    common::ClosestKeyframe keyframe_closest_request;
+    keyframe_closest_request.request.keyframe_last = keyframe_last_request.response.keyframe_last;
+    bool keyframe_closest_request_returned = keyframe_closest_client.call(keyframe_closest_request);
+
+    if(keyframe_closest_request_returned) {
+      sensor_msgs::PointCloud2 keyframe_closest_pointcloud =
+	keyframe_closest_request.response.keyframe_closest.pointcloud;
+      common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
+    }
+  }
 }
 
 int main(int argc, char** argv) {
@@ -128,6 +148,9 @@ int main(int argc, char** argv) {
   ros::Subscriber scanner_sub = n.subscribe("/base_scan", 1, scanner_callback);
 
   registration_pub  = n.advertise<common::Registration>("/scanner/registration", 1);
+
+  keyframe_last_client = n.serviceClient<common::LastKeyframe>("/graph/last_keyframe");
+  keyframe_closest_client = n.serviceClient<common::ClosestKeyframe>("/graph/last_keyframe");
 
   ros::spin();
   return 0;
