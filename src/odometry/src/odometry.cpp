@@ -30,6 +30,9 @@ common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y,
   return output;
 }
 
+// JS: This method is used by more than one node.
+//      It could be placed in package 'common'
+//      and also renamed to 'between(pose1, pose2)'
 common::Pose2DWithCovariance pose_transform(common::Pose2DWithCovariance start_pose,
 					    common::Pose2DWithCovariance end_pose) {
   common::Pose2DWithCovariance transform;
