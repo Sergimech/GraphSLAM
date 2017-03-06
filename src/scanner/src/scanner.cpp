@@ -31,13 +31,12 @@ const double k_disp_disp = 0.1;
 const double k_rot_disp = 0.1;
 const double k_rot_rot = 0.1;
 
-common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::MatrixXd m) {
+common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::Matrix3d m) {
   common::Pose2DWithCovariance output;
   output.pose.x = x;
   output.pose.y = y;
   output.pose.theta = th;
 
-  // JS: check that m is 3x3
   for(int i = 0; i < m.rows(); i++) {
     for(int j = 0; j < m.cols(); j++) {
       output.covariance[( i * m.rows() ) + j] = m(i, j);
@@ -93,9 +92,9 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       double sigma_th_squared = ( k_rot_disp * Dl ) + ( k_rot_rot * Dth );
 
       Eigen::MatrixXd Q(3, 3);
-      C_l(0, 0) = sigma_x_squared;
-      C_l(1, 1) = sigma_y_squared;
-      C_l(2, 2) = sigma_th_squared;
+      Q(0, 0) = sigma_x_squared;
+      Q(1, 1) = sigma_y_squared;
+      Q(2, 2) = sigma_th_squared;
 
       common::Pose2DWithCovariance Delta;
 
