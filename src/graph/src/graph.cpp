@@ -70,7 +70,7 @@ void new_factor(common::Registration input) {
   // KeyFrame kf_new = input.keyframe_new
   // kf_new.id = keyframe_IDs
   // kf_new.pose_opt = pose_new
-  // keyframes.push_back(input.keyframe_new);
+  // keyframes.push_back(kf_new);
 
   initial.insert(input.factor_new.id_2,
 		 gtsam::Pose2(pose_new.pose.x,
