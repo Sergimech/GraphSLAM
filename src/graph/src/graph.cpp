@@ -54,8 +54,8 @@ void new_factor(common::Registration input) {
   input.keyframe_new.id = keyframe_IDs++;
 
   Eigen::MatrixXd Q(3, 3);
-  Q(0, 0) = input.factor_new.delta.covariance[0];
-  Q(1, 1) = input.factor_new.delta.covariance[4];
+  Q(0, 0) = input.factor_new.delta.covariance[0]; // JS: We should be filling all 9 values, not just the diagonal.
+  Q(1, 1) = input.factor_new.delta.covariance[4]; // JS: so we could maybe create a small function: `make_covariance(float64[])` to return a Eigen::MatrixXd
   Q(2, 2) = input.factor_new.delta.covariance[9];
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
 
