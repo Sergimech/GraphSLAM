@@ -26,6 +26,10 @@
 ros::Publisher registration_pub;
 ros::ServiceClient keyframe_last_client;
 ros::ServiceClient keyframe_closest_client;
+const double converged_fitness_threshold = 0.15;
+const double k_disp_disp = 0.1;
+const double k_rot_disp = 0.1;
+const double k_rot_rot = 0.1;
 
 common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::MatrixXd m) {
   common::Pose2DWithCovariance output;
@@ -73,7 +77,6 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
   pcl::PointCloud<pcl::PointXYZ>::Ptr pointcloud_transform(new pcl::PointCloud<pcl::PointXYZ>);
 
   double converged_fitness = gicp.getFitnessScore();
-  double converged_fitness_threshold = 0.15; // JS Put this elsewhere more visible. At least a global in this file. We'll migrate it to rosparams whenever we feel like.
   bool converged = gicp.hasConverged();
   Eigen::Matrix4f transform = gicp.getFinalTransformation();
   common::Registration output;
@@ -83,10 +86,6 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       double Dx = transform(0, 3);
       double Dy = transform(1, 3);
       double Dth = atan2( transform(1, 0), transform(0, 0) );
-
-      double k_disp_disp = 0.1; // JS: put these constants elsewhere more visible. At least a global in this file. We'll migrate it to rosparams whenever we feel like.
-      double k_rot_disp = 0.1;
-      double k_rot_rot = 0.1;
 
       double Dl = sqrt( pow( Dx, 2 ) + pow( Dy, 2) );
       double sigma_x_squared = k_disp_disp * Dl;
