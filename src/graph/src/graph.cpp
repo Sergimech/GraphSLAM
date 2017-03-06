@@ -89,6 +89,7 @@ void loop_factor(common::Registration input) {
 
     // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
     // JS: this Gaussian::Covariance model should be used in all the project, not just here
+    // JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter
 gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
 					 input.factor_loop.delta.covariance[0],
@@ -100,19 +101,23 @@ gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
 					       gtsam::Pose2(input.factor_loop.delta.pose.x,
 							    input.factor_loop.delta.pose.y,
 							    input.factor_loop.delta.pose.theta), delta_Model));
+
 }
 
 void solve() {
   gtsam::Values optimized_result = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
-  optimized_result.print("\nLatest Result:\n");
   gtsam::Marginals marginals(graph, optimized_result);
+
+  // JS: remove once debugged
+  optimized_result.print("\nLatest Result:\n");
   marginals.print("\nMarginals\n");
 
+  // update keyframes with optimization result
   for(int i = 0; i < keyframes.size(); i++) {
     //DS: Update of odom_opti.pose - Values
     //DS: Update of odom_opti.covariance - Marginals
       //JS: Use the ideas in Slack from JS on 6/3/17, e.g.
-      //      Values poses_opt = NonLinearFactorgraph(graph,initial).optimize()
+      //      Values poses_opt = LevenbergMarquardtOptimizer(graph,initial).optimize()
       //      Marginals marginals(graph,poses_opt);
       //      [...]
       //      for (id = 1 : all_ids) {
