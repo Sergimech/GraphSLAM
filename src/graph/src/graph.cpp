@@ -60,7 +60,9 @@ void loop_factor(common::Registration input) {
 
 void solve() {
   gtsam::Values poses_opti = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
+  poses_opti.print();
   gtsam::Marginals marginals(graph, poses_opti);
+  marginals.print();
 
   for(int i = 0; i < keyframes.size(); i++) {
     //keyframes[i].pose_opti.pose = poses_opti.at(keyframes[i].id);
