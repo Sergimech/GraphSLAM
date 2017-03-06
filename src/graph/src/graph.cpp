@@ -7,8 +7,9 @@ std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously
 int keyframe_IDs;
 
 void new_factor(common::Registration input) {
+    keyframe_IDs++;
+    input.keyframe_new.id = keyframe_IDs;// JS: I made the factory more explicit. And I think it was incorrect before.
   input.factor_new.id_2 = keyframe_IDs;
-  input.keyframe_new.id = keyframe_IDs++;
 
   Eigen::MatrixXd Q(3, 3);
   Q << input.factor_new.delta.covariance[0],
