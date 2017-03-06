@@ -3,7 +3,7 @@
 gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
-std::vector<common::Keyframe> keyframes;
+std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously resized. Better use std::deque?
 int keyframe_IDs;
 
 void new_factor(common::Registration input) {
@@ -68,6 +68,9 @@ void solve() {
     //keyframes[i].pose_opti.pose = poses_opti.at(keyframes[i].id);
     //keyframes[i].pose_opti.covariance = marginals.marginalCovariance(keyframes[i].id);
   }
+
+  // JS: make initial take the last solution, so that next iteration is simpler:
+  initial = poses_opti;
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
