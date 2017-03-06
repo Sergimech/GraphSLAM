@@ -3,7 +3,7 @@
 gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
-std::vector<common::Keyframe> keyframes;
+std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously resized. Better use std::deque?
 int keyframe_IDs;
 
 void new_factor(common::Registration input) {
