@@ -33,6 +33,7 @@ common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y,
   output.pose.y = y;
   output.pose.theta = th;
 
+  // JS: check that m is 3x3
   for(int i = 0; i < m.rows(); i++) {
     for(int j = 0; j < m.cols(); j++) {
       output.covariance[( i * m.rows() ) + j] = m(i, j);
@@ -72,7 +73,7 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
   pcl::PointCloud<pcl::PointXYZ>::Ptr pointcloud_transform(new pcl::PointCloud<pcl::PointXYZ>);
 
   double converged_fitness = gicp.getFitnessScore();
-  double converged_fitness_threshold = 0.15;
+  double converged_fitness_threshold = 0.15; // JS Put this elsewhere more visible. At least a global in this file. We'll migrate it to rosparams whenever we feel like.
   bool converged = gicp.hasConverged();
   Eigen::Matrix4f transform = gicp.getFinalTransformation();
   common::Registration output;
@@ -83,7 +84,7 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       double Dy = transform(1, 3);
       double Dth = atan2( transform(1, 0), transform(0, 0) );
 
-      double k_disp_disp = 0.1;
+      double k_disp_disp = 0.1; // JS: put these constants elsewhere more visible. At least a global in this file. We'll migrate it to rosparams whenever we feel like.
       double k_rot_disp = 0.1;
       double k_rot_rot = 0.1;
 
@@ -92,11 +93,13 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       double sigma_y_squared = k_disp_disp * Dl;
       double sigma_th_squared = ( k_rot_disp * Dl ) + ( k_rot_rot * Dth );
 
-      Eigen::MatrixXd C_l(6, 6);
+      // JS: Rename C_l --> Q
+      Eigen::MatrixXd C_l(6, 6); // JS: Use 3x3 cov matrix
       C_l(0, 0) = sigma_x_squared;
       C_l(1, 1) = sigma_y_squared;
-      C_l(5, 5) = sigma_th_squared;
+      C_l(5, 5) = sigma_th_squared; // JS: here is (2,2)
  
+
       common::Pose2DWithCovariance Delta;
 
       Delta.pose.x = Dx;
@@ -139,6 +142,14 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
       common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
     }
   }
+  // JS: We need an 'else', at least for the very first scan!
+  /** else: create a registration message
+   * registration.KF_flag = true
+   * LC_flag = false
+   * scan = input
+   * Delta = [all zeros]
+   * KF_last = empty or dummy, with Id = 0
+   */
 }
 
 int main(int argc, char** argv) {
