@@ -51,8 +51,12 @@ common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, commo
 void new_factor(common::Registration input) {
   input.factor_new.id_2 = keyframe_IDs;
   input.keyframe_new.id = keyframe_IDs++;
-  keyframes.push_back(input.keyframe_new);
   
+  // JS: I think this push should be made at the end, once all the elements of the current keyframe are computed.
+  keyframes.push_back(input.keyframe_new);
+
+  // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
+  // JS: this Gaussian::Covariance model should be used in all the project, not just here
   gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
 					 input.factor_new.delta.covariance[0],
@@ -61,11 +65,19 @@ void new_factor(common::Registration input) {
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
   
+  // JS: put this pose_new into the new KF:
+  //
+  // KeyFrame kf_new = input.keyframe_new
+  // kf_new.id = keyframe_IDs
+  // kf_new.pose_opt = pose_new
+  // keyframes.push_back(input.keyframe_new);
+
   initial.insert(input.factor_new.id_2,
 		 gtsam::Pose2(pose_new.pose.x,
 			      pose_new.pose.y,
 			      pose_new.pose.theta));
   
+  // JS: prefer graph.add()
   graph.push_back(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_new.id_1,
 						     input.factor_new.id_2,
 						     gtsam::Pose2(input.factor_new.delta.pose.x,
@@ -74,7 +86,10 @@ void new_factor(common::Registration input) {
 }
 
 void loop_factor(common::Registration input) {
-  gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
+
+    // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
+    // JS: this Gaussian::Covariance model should be used in all the project, not just here
+gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
     gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
 					 input.factor_loop.delta.covariance[0],
 					 input.factor_loop.delta.covariance[4],
@@ -96,6 +111,14 @@ void solve() {
   for(int i = 0; i < keyframes.size(); i++) {
     //DS: Update of odom_opti.pose - Values
     //DS: Update of odom_opti.covariance - Marginals
+      //JS: Use the ideas in Slack from JS on 6/3/17, e.g.
+      //      Values poses_opt = NonLinearFactorgraph(graph,initial).optimize()
+      //      Marginals marginals(graph,poses_opt);
+      //      [...]
+      //      for (id = 1 : all_ids) {
+      //        keyframe(id).pose_opt.pose = poses_opt.at(id);
+      //        keyFrame(id).pose_opt.covariance = marginals.marginalCovariance(id);
+      //      }
   }
 }
 
