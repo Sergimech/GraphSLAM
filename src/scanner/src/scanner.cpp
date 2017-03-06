@@ -31,15 +31,17 @@ const double k_disp_disp = 0.1;
 const double k_rot_disp = 0.1;
 const double k_rot_rot = 0.1;
 
-common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::Matrix3d m) {
+common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::MatrixXd m) {
   common::Pose2DWithCovariance output;
   output.pose.x = x;
   output.pose.y = y;
   output.pose.theta = th;
 
-  for(int i = 0; i < m.rows(); i++) {
-    for(int j = 0; j < m.cols(); j++) {
-      output.covariance[( i * m.rows() ) + j] = m(i, j);
+  if(m.rows() == 3 && m.cols() == 3) {
+    for(int i = 0; i < m.rows(); i++) {
+      for(int j = 0; j < m.cols(); j++) {
+	output.covariance[( i * m.rows() ) + j] = m(i, j);
+      }
     }
   }
 
@@ -97,14 +99,13 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
       Q(2, 2) = sigma_th_squared;
 
       common::Pose2DWithCovariance Delta;
-
       Delta.pose.x = Dx;
       Delta.pose.y = Dy;
       Delta.pose.theta = Dth;
     
       for(int i = 0; i < Q.rows(); i++) {
 	for(int j = 0; j < Q.cols(); j++) {
-	  Delta.covariance[( i * Q.rows() ) + j] = C_l(i, j);
+	  Delta.covariance[( i * Q.rows() ) + j] = Q(i, j);
 	}
       }
     

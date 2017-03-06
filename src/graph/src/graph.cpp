@@ -52,11 +52,11 @@ void new_factor(common::Registration input) {
   input.factor_new.id_2 = keyframe_IDs;
   input.keyframe_new.id = keyframe_IDs++;
 
-  gtsam::noiseModel::Gaussian::shared_ptr delta_Model =
-    gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) <<
-					     input.factor_new.delta.covariance[0],
-					     input.factor_new.delta.covariance[4],
-					     input.factor_new.delta.covariance[9]));
+  Eigen::MatrixXd Q(3, 3);
+  Q(0, 0) = input.factor_new.delta.covariance[0];
+  Q(1, 1) = input.factor_new.delta.covariance[4];
+  Q(2, 2) = input.factor_new.delta.covariance[9];
+  gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
 
@@ -75,17 +75,13 @@ void new_factor(common::Registration input) {
 }
 
 void loop_factor(common::Registration input) {
-    // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
-    // JS: this Gaussian::Covariance model should be used in all the project, not just here
-
 // JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter,
     // so you can insert directly factor_loop.delta.covariance instead of a Vector3(stuff) which only considers the diagonal
-  gtsam::noiseModel::Gaussian::shared_ptr delta_Model =
-    gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) <<
-					     input.factor_loop.delta.covariance[0],
-					     input.factor_loop.delta.covariance[4],
-					     input.factor_loop.delta.covariance[9]));
-  
+  Eigen::MatrixXd Q(3, 3);
+  Q(0, 0) = input.factor_loop.delta.covariance[0];
+  Q(1, 1) = input.factor_loop.delta.covariance[4];
+  Q(2, 2) = input.factor_loop.delta.covariance[9];
+  gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_loop.id_1,
 					       input.factor_loop.id_2,
 					       gtsam::Pose2(input.factor_loop.delta.pose.x,
