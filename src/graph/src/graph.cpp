@@ -89,7 +89,8 @@ void loop_factor(common::Registration input) {
 
 void solve() {
   gtsam::Values optimized_result = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
-  
+  optimized_result.print("\nLatest Result:\n");
+  gtsam::Marginals marginals(graph, optimized_result);
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
