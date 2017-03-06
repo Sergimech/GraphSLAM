@@ -3,6 +3,7 @@ project(graph)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  common
   )
 
 find_package(GTSAM REQUIRED)

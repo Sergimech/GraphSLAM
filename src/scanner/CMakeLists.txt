@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 2.8.3)
 project(scanner)
 
 find_package(catkin REQUIRED COMPONENTS
+  tf
+  pcl_ros
+  pcl_conversions
+  laser_geometry
+  cmake_modules
+  sensor_msgs
   roscpp
   common
   )

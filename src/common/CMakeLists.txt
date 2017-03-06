@@ -16,14 +16,23 @@ add_message_files(
   Odometry.msg
   Registration.msg
   Pose2DWithCovariance.msg
-)
+  )
+
+add_service_files(
+  FILES
+  LastKeyframe.srv
+  ClosestKeyframe.srv
+  OdometryBuffer.srv
+  )
 
 generate_messages(
   DEPENDENCIES
   std_msgs
   sensor_msgs
   geometry_msgs
-)
+  )
+
+
 
 catkin_package(
   DEPENDS message_runtime
