@@ -51,17 +51,12 @@ common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, commo
 void new_factor(common::Registration input) {
   input.factor_new.id_2 = keyframe_IDs;
   input.keyframe_new.id = keyframe_IDs++;
-  
-  // JS: I think this push should be made at the end, once all the elements of the current keyframe are computed.
-  keyframes.push_back(input.keyframe_new);
 
-  // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
-  // JS: this Gaussian::Covariance model should be used in all the project, not just here
-  gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
-    gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
-					 input.factor_new.delta.covariance[0],
-					 input.factor_new.delta.covariance[4],
-					 input.factor_new.delta.covariance[9]));
+  gtsam::noiseModel::Gaussian::shared_ptr delta_Model =
+    gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) <<
+					     input.factor_new.delta.covariance[0],
+					     input.factor_new.delta.covariance[4],
+					     input.factor_new.delta.covariance[9]));
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
   
@@ -70,31 +65,35 @@ void new_factor(common::Registration input) {
   // KeyFrame kf_new = input.keyframe_new
   // kf_new.id = keyframe_IDs
   // kf_new.pose_opt = pose_new
+<<<<<<< HEAD
   // keyframes.push_back(kf_new);
+=======
+  // keyframes.push_back(input.keyframe_new);
+  keyframes.push_back(input.keyframe_new);
+>>>>>>> branch 'kinetic' of git@github.com:davidswords/GraphSLAM.git
 
   initial.insert(input.factor_new.id_2,
 		 gtsam::Pose2(pose_new.pose.x,
 			      pose_new.pose.y,
 			      pose_new.pose.theta));
   
-  // JS: prefer graph.add()
-  graph.push_back(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_new.id_1,
-						     input.factor_new.id_2,
-						     gtsam::Pose2(input.factor_new.delta.pose.x,
-								  input.factor_new.delta.pose.y,
-								  input.factor_new.delta.pose.theta), delta_Model));
+  graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_new.id_1,
+					       input.factor_new.id_2,
+					       gtsam::Pose2(input.factor_new.delta.pose.x,
+							    input.factor_new.delta.pose.y,
+							    input.factor_new.delta.pose.theta), delta_Model));
 }
 
 void loop_factor(common::Registration input) {
 
     // JS: use noiseModel::Gaussian::Covariance instead of Diagonal::Sigmas
     // JS: this Gaussian::Covariance model should be used in all the project, not just here
-    // JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter
-gtsam::noiseModel::Diagonal::shared_ptr delta_Model =
-    gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) <<
-					 input.factor_loop.delta.covariance[0],
-					 input.factor_loop.delta.covariance[4],
-					 input.factor_loop.delta.covariance[9]));
+// JS: gtsam::noiseModel::Gaussian::Covariance ( Q ) ; // Accepts an `Eigen::MatrixXd Q` as parameter
+  gtsam::noiseModel::Gaussian::shared_ptr delta_Model =
+    gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) <<
+					     input.factor_loop.delta.covariance[0],
+					     input.factor_loop.delta.covariance[4],
+					     input.factor_loop.delta.covariance[9]));
   
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_loop.id_1,
 					       input.factor_loop.id_2,
@@ -178,8 +177,8 @@ int main(int argc, char** argv) {
 
   keyframe_IDs = 0;
 
-  gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
-    gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(3) << 0.3, 0.3, 0.1));
+  gtsam::noiseModel::Gaussian::shared_ptr priorNoise =
+    gtsam::noiseModel::Gaussian::Covariance((gtsam::Vector(3) << 0.3, 0.3, 0.1));
   graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(1, gtsam::Pose2(0, 0, 0), priorNoise));
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);

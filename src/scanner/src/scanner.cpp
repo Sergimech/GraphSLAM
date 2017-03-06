@@ -126,12 +126,16 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
 
 void scanner_callback(const sensor_msgs::LaserScan& input) {
   common::LastKeyframe keyframe_last_request;
+  common::Registration output;
   bool keyframe_last_request_returned = keyframe_last_client.call(keyframe_last_request);
 
   if(keyframe_last_request_returned) {
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
     sensor_msgs::PointCloud2 keyframe_last_pointcloud = keyframe_last_request.response.keyframe_last.pointcloud;
     common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
+    
+    output.keyframe_flag = registration_last.keyframe_flag;
+      
     common::ClosestKeyframe keyframe_closest_request;
     keyframe_closest_request.request.keyframe_last = keyframe_last_request.response.keyframe_last;
     bool keyframe_closest_request_returned = keyframe_closest_client.call(keyframe_closest_request);
@@ -140,16 +144,18 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
       sensor_msgs::PointCloud2 keyframe_closest_pointcloud =
 	keyframe_closest_request.response.keyframe_closest.pointcloud;
       common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
+      
     }
+  } else {
+    sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
+    common::Registration keyframe_first;
+    keyframe_first.keyframe_flag = true;
+    keyframe_first.loop_closure_flag = false;
+    keyframe_first.keyframe_new.pointcloud = input_pointcloud;
+    registration_pub.publish(keyframe_first);
   }
-  // JS: We need an 'else', at least for the very first scan!
-  /** else: create a registration message
-   * registration.KF_flag = true
-   * LC_flag = false
-   * scan = input
-   * Delta = [all zeros]
-   * KF_last = empty or dummy, with Id = 0
-   */
+
+  registration_pub.publish(output);
 }
 
 int main(int argc, char** argv) {
