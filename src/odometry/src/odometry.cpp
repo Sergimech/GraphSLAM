@@ -18,7 +18,10 @@
 // Please feel free to consult me
 
 double vx, vy, vth;
+
+// Tuning constants:
 double k_d_d = 0.1, k_r_d = 0.1, k_r_r = 0.1; // TODO migrate to rosparams
+
 //, Delta_x, Delta_y, Delta_th; // JS: We do not need Delta
 std::deque<common::Odometry> buffer_odom; // JS: changed vector --> deque for an efficient pop_front().
 

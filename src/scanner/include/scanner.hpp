@@ -56,10 +56,12 @@ geometry_msgs::Pose2D make_Delta(Eigen::MatrixXf T) {
   return Delta;
 }
 
-Eigen::MatrixXd compute_covariance(geometry_msgs::Pose2D input) {
-  double k_disp_disp = 0.1;
-  double k_rot_disp = 0.1;
-  double k_rot_rot = 0.1;
+// JS: Isn't it possible to place these functions in a common place for everyone to share?? Like in common/src/ or something? I have made this comment a lot of times :-(
+Eigen::MatrixXd compute_covariance(const double k_disp_disp, const double k_rot_disp, const double k_rot_rot, geometry_msgs::Pose2D input)
+{
+//  double k_disp_disp = 0.1; // JS: I put these as input params for this function. Remove these lines.
+//  double k_rot_disp = 0.1;
+//  double k_rot_rot = 0.1;
   
   double Dl = sqrt( pow( input.x, 2 ) + pow( input.y, 2) );
   double sigma_x_squared = k_disp_disp * Dl;
