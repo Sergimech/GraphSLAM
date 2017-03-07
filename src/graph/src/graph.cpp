@@ -40,15 +40,15 @@ void new_factor(common::Registration input) {
 
 void loop_factor(common::Registration input) {
   Eigen::MatrixXd Q(3, 3);
-  Q(0, 0) = input.factor_loop.delta.covariance[0];
-  Q(0, 1) = input.factor_loop.delta.covariance[1];
-  Q(0, 2) = input.factor_loop.delta.covariance[2];
-  Q(1, 0) = input.factor_loop.delta.covariance[3];
-  Q(1, 1) = input.factor_loop.delta.covariance[4];
-  Q(1, 2) = input.factor_loop.delta.covariance[5];
-  Q(2, 0) = input.factor_loop.delta.covariance[6];
-  Q(2, 1) = input.factor_loop.delta.covariance[7];
-  Q(2, 2) = input.factor_loop.delta.covariance[8];
+  Q.row(0) << input.factor_loop.delta.covariance[0],
+    input.factor_loop.delta.covariance[1],
+    input.factor_loop.delta.covariance[2];
+  Q.row(1) << input.factor_loop.delta.covariance[3],
+    input.factor_loop.delta.covariance[4],
+    input.factor_loop.delta.covariance[5];
+  Q.row(2) << input.factor_loop.delta.covariance[6],
+    input.factor_loop.delta.covariance[7],
+    input.factor_loop.delta.covariance[8];
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_loop.id_1,
 					       input.factor_loop.id_2,
