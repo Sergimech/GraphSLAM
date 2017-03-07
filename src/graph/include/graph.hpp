@@ -40,3 +40,18 @@ common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, commo
 
   return output;
 }
+
+Eigen::MatrixXd covariance_to_eigen(common::Factor input) {
+  Eigen::MatrixXd Q(3, 3);
+  Q.row(0) << input.delta.covariance[0],
+    input.delta.covariance[1],
+    input.delta.covariance[2];
+  Q.row(1) << input.delta.covariance[3],
+    input.delta.covariance[4],
+    input.delta.covariance[5];
+  Q.row(2) << input.delta.covariance[6],
+    input.delta.covariance[7],
+    input.delta.covariance[8];
+
+  return Q;
+}

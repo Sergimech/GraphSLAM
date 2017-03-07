@@ -7,33 +7,22 @@ std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously
 int keyframe_IDs;
 
 void new_factor(common::Registration input) {
-    keyframe_IDs++;
-    input.keyframe_new.id = keyframe_IDs;// JS: I made the factory more explicit. And I think it was incorrect before.
+  keyframe_IDs++;
+  input.keyframe_new.id = keyframe_IDs;
   input.factor_new.id_2 = keyframe_IDs;
+  ROS_INFO("NEW FACTOR ID=%d CREATION STARTED.", input.keyframe_new.id);
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
 
-  // JS: Here you need to update 'input.keyframe_new' with the 'pose_new':
-  //   input.keyframe_new.pose_opt = pose_new;
-  // JS: and then you can put it in the buffer as below:
+  input.keyframe_new.pose_opti = pose_new;
   keyframes.push_back(input.keyframe_new);
 
-  initial.insert(input.factor_new.id_2, // JS: use 'input.keyframe_new.id' instead of 'input.factor_new.id_2'
+  initial.insert(input.keyframe_new.id,
 		 gtsam::Pose2(pose_new.pose.x,
 			      pose_new.pose.y,
 			      pose_new.pose.theta));
 
-  // JS: I just moved this code down here for better clarity. You can remove this comment.
-  Eigen::MatrixXd Q(3, 3);
-  Q(0, 0) = input.factor_new.delta.covariance[0];
-  Q(0, 1) = input.factor_new.delta.covariance[1];
-  Q(0, 2) = input.factor_new.delta.covariance[2];
-  Q(1, 0) = input.factor_new.delta.covariance[3];
-  Q(1, 1) = input.factor_new.delta.covariance[4];
-  Q(1, 2) = input.factor_new.delta.covariance[5];
-  Q(2, 0) = input.factor_new.delta.covariance[6];
-  Q(2, 1) = input.factor_new.delta.covariance[7];
-  Q(2, 2) = input.factor_new.delta.covariance[8];
+  Eigen::MatrixXd Q = covariance_to_eigen(input.factor_new);
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
 
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_new.id_1,
@@ -41,26 +30,19 @@ void new_factor(common::Registration input) {
 					       gtsam::Pose2(input.factor_new.delta.pose.x,
 							    input.factor_new.delta.pose.y,
 							    input.factor_new.delta.pose.theta), delta_Model));
+  ROS_INFO("NEW FACTOR ID=%d CREATION FINISHED.", input.keyframe_new.id);
 }
 
-void loop_factor(common::Registration input) { // JS: OK
-  Eigen::MatrixXd Q(3, 3);
-  Q.row(0) << input.factor_loop.delta.covariance[0],
-    input.factor_loop.delta.covariance[1],
-    input.factor_loop.delta.covariance[2];
-  Q.row(1) << input.factor_loop.delta.covariance[3],
-    input.factor_loop.delta.covariance[4],
-    input.factor_loop.delta.covariance[5];
-  Q.row(2) << input.factor_loop.delta.covariance[6],
-    input.factor_loop.delta.covariance[7],
-    input.factor_loop.delta.covariance[8];
+void loop_factor(common::Registration input) {
+  ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION STARTED.", input.factor_loop.id_1, input.factor_loop.id_1);
+  Eigen::MatrixXd Q = covariance_to_eigen(input.factor_loop);
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_loop.id_1,
 					       input.factor_loop.id_2,
 					       gtsam::Pose2(input.factor_loop.delta.pose.x,
 							    input.factor_loop.delta.pose.y,
 							    input.factor_loop.delta.pose.theta), delta_Model));
-
+  ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION FINISHED.", input.factor_loop.id_1, input.factor_loop.id_1);
 }
 
 void solve() {
@@ -91,23 +73,27 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
   if(!keyframes.empty()) {
     std::vector<double> distances;
 
-    for(int i = 0; i < keyframes.size() - 10; i++) {
-      double x1 = req.keyframe_last.pose_opti.pose.x;
-      double y1 = req.keyframe_last.pose_opti.pose.y;
-      double x2 = keyframes[i].pose_opti.pose.x;
-      double y2 = keyframes[i].pose_opti.pose.y;
-      distances.push_back( sqrt( pow( x2 - x1, 2 ) + pow( y2 - y1, 2 ) ) );
-    }
-
-    int minimum_keyframe_index = 0;
-    for(int i = 0; i < distances.size(); i++) {
-      if(distances[i] < distances[minimum_keyframe_index]) {
-	minimum_keyframe_index = i;
+    if(keyframes.size() > 10) {
+      for(int i = 0; i < keyframes.size() - 10; i++) {
+	double x1 = req.keyframe_last.pose_opti.pose.x;
+	double y1 = req.keyframe_last.pose_opti.pose.y;
+	double x2 = keyframes[i].pose_opti.pose.x;
+	double y2 = keyframes[i].pose_opti.pose.y;
+	distances.push_back( sqrt( pow( x2 - x1, 2 ) + pow( y2 - y1, 2 ) ) );
       }
-    }
 
-    res.keyframe_closest = keyframes[minimum_keyframe_index];
-    return true;
+      int minimum_keyframe_index = 0;
+      for(int i = 0; i < distances.size(); i++) {
+	if(distances[i] < distances[minimum_keyframe_index]) {
+	  minimum_keyframe_index = i;
+	}
+      }
+
+      res.keyframe_closest = keyframes[minimum_keyframe_index];
+      return true;
+    } else {
+      return false;
+    }
   }
   
   return false;

@@ -8,14 +8,23 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   cmake_modules
   sensor_msgs
+  geometry_msgs
   roscpp
   common
   )
 
+find_package(
+  Eigen3 REQUIRED
+  )
+
 catkin_package()
 
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  )
 
 add_executable(scanner src/scanner.cpp)
-target_link_libraries(scanner ${catkin_LIBRARIES})
+target_link_libraries(scanner ${catkin_LIBRARIES} ${EIGEN_LIBRARIES})
 add_dependencies(scanner common_gencpp)
