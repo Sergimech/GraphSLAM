@@ -5,6 +5,8 @@ gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
 std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously resized. Better use std::deque?
 int keyframe_IDs;
+double sigma_xy_prior = 0.1; // TODO migrate to rosparams
+double sigma_th_prior = 0.1; // TODO migrate to rosparams
 
 void new_factor(common::Registration input) {
   input.keyframe_new.id = keyframe_IDs;
@@ -145,9 +147,9 @@ int main(int argc, char** argv) {
   double x_prior = 0, y_prior = 0, th_prior = 0; // initial pose
   Eigen::MatrixXd Q(3, 3);
   Q.Zero(3, 3);
-  Q(0, 0) = 0.1;
-  Q(1, 1) = 0.1;
-  Q(2, 2) = 0.1;
+  Q(0, 0) = sigma_xy_prior*sigma_xy_prior;
+  Q(1, 1) = sigma_xy_prior*sigma_xy_prior;
+  Q(2, 2) = sigma_th_prior*sigma_th_prior;
   
   gtsam::noiseModel::Gaussian::shared_ptr priorNoise = gtsam::noiseModel::Gaussian::Covariance( Q );
   keyframe_IDs++;
