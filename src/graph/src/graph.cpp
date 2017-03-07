@@ -7,20 +7,16 @@ std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously
 int keyframe_IDs;
 
 void new_factor(common::Registration input) {
-  keyframe_IDs++;
   input.keyframe_new.id = keyframe_IDs;
-  input.factor_new.id_2 = keyframe_IDs;
+  input.factor_new.id_2 = keyframe_IDs++;
   ROS_INFO("NEW FACTOR ID=%d CREATION STARTED.", input.keyframe_new.id);
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
 
   input.keyframe_new.pose_opti = pose_new;
   keyframes.push_back(input.keyframe_new);
-
-  initial.insert(input.keyframe_new.id,
-		 gtsam::Pose2(pose_new.pose.x,
-			      pose_new.pose.y,
-			      pose_new.pose.theta));
+  
+  initial.insert(input.keyframe_new.id, gtsam::Pose2(pose_new.pose.x, pose_new.pose.y, pose_new.pose.theta));
 
   Eigen::MatrixXd Q = covariance_to_eigen(input.factor_new);
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
@@ -46,6 +42,7 @@ void loop_factor(common::Registration input) {
 }
 
 void solve() {
+  ROS_INFO("SOLVE STARTED.");
   gtsam::Values poses_opti = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
   poses_opti.print();
   gtsam::Marginals marginals(graph, poses_opti);
@@ -58,18 +55,23 @@ void solve() {
 
   // JS: make initial take the last solution, so that next iteration is simpler:
   initial = poses_opti;
+  ROS_INFO("SOLVE FINISHED.");
 }
 
 bool last_keyframe(common::LastKeyframe::Request &req, common::LastKeyframe::Response &res) {
+  ROS_INFO("LAST KEYFRAME SERVICE STARTED.");
   if(!keyframes.empty()) {
     res.keyframe_last = keyframes.back();
+    ROS_INFO("LAST KEYFRAME ID=%d SERVICE FINISHED.", keyframes.back().id);
     return true;
   }
-  
+
+  ROS_INFO("LAST KEYFRAME SERVICE FINISHED. No keyframes available.");
   return false;
 }
 
 bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyframe::Response &res) {
+  ROS_INFO("CLOSEST KEYFRAME SERVICE STARTED.");
   if(!keyframes.empty()) {
     std::vector<double> distances;
 
@@ -90,16 +92,28 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
       }
 
       res.keyframe_closest = keyframes[minimum_keyframe_index];
+      ROS_INFO("CLOSEST KEYFRAME ID=%d SERVICE FINISHED.", keyframes[minimum_keyframe_index].id);
       return true;
     } else {
+      ROS_INFO("CLOSEST KEYFRAME SERVICE FINISHED. Not enought keyframes.");
       return false;
     }
   }
-  
+
+  ROS_INFO("CLOSEST KEYFRAME SERVICE FINISHED. No keyframes available.");
   return false;
 }
 
 void registration_callback(const common::Registration& input) {
+  ROS_INFO("###REGISTRATION CALLBACK STARTED.###");
+  if(!keyframes.empty()) {
+    ROS_INFO("No. of Keyframes = %lu", keyframes.size() );
+    ROS_INFO("ID of Last Keyframe = %d", keyframes.back().id);
+    ROS_INFO("ts of Last Keyframe = %f", keyframes.back().ts.toSec());
+    ROS_INFO("height+width of pointcloud of Last Keyframe = %u %u",
+	     keyframes.back().pointcloud.height,
+	     keyframes.back().pointcloud.width);
+  }
   if(input.keyframe_flag) {
     new_factor(input);
   }
@@ -107,6 +121,7 @@ void registration_callback(const common::Registration& input) {
   if(input.loop_closure_flag) {
     loop_factor(input);
   }
+  ROS_INFO("###REGISTRATION CALLBACK FINISHED.###");
 }
 
 int main(int argc, char** argv) {
