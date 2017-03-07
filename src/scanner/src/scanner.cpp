@@ -3,7 +3,7 @@
 ros::Publisher registration_pub;
 ros::ServiceClient keyframe_last_client;
 ros::ServiceClient keyframe_closest_client;
-const double converged_fitness_threshold = 0.15;
+const double converged_fitness_threshold = 0.15; // TODO migrate to rosparams
 
 sensor_msgs::PointCloud2 scan_to_pointcloud(sensor_msgs::LaserScan input) {
   ROS_INFO("SCAN TO POINTCLOUD STARTED.");
