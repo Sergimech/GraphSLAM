@@ -8,9 +8,37 @@ int keyframe_IDs;
 double sigma_xy_prior = 0.1; // TODO migrate to rosparams
 double sigma_th_prior = 0.1; // TODO migrate to rosparams
 
+void prior_factor() {
+  double x_prior = 0;
+  double y_prior = 0;
+  double th_prior = 0;
+  
+  Eigen::MatrixXd Q(3, 3);
+  Q.Zero(3, 3);
+  Q(0, 0) = sigma_xy_prior * sigma_xy_prior;
+  Q(1, 1) = sigma_xy_prior * sigma_xy_prior;
+  Q(2, 2) = sigma_th_prior * sigma_th_prior;
+  
+  gtsam::noiseModel::Gaussian::shared_ptr priorNoise = gtsam::noiseModel::Gaussian::Covariance( Q );
+  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(keyframe_IDs,
+						   gtsam::Pose2(x_prior,
+								y_prior,
+								th_prior), priorNoise));
+  initial.insert(keyframe_IDs, gtsam::Pose2(x_prior, y_prior, th_prior));
+
+  common::Keyframe keyframe_first;
+  keyframe_first.id = keyframe_IDs;
+  keyframe_first.pose_opti.pose.x = x_prior;
+  keyframe_first.pose_opti.pose.y = y_prior;
+  keyframe_first.pose_opti.pose.theta = th_prior;
+
+  keyframes.push_back(keyframe_first);
+  keyframe_IDs++;
+}
+
 void new_factor(common::Registration input) {
   input.keyframe_new.id = keyframe_IDs;
-  input.factor_new.id_2 = keyframe_IDs++;
+  input.factor_new.id_2 = keyframe_IDs;
   ROS_INFO("NEW FACTOR ID=%d CREATION STARTED.", input.keyframe_new.id);
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
@@ -28,6 +56,7 @@ void new_factor(common::Registration input) {
 					       gtsam::Pose2(input.factor_new.delta.pose.x,
 							    input.factor_new.delta.pose.y,
 							    input.factor_new.delta.pose.theta), delta_Model));
+  keyframe_IDs++;
   ROS_INFO("NEW FACTOR ID=%d CREATION FINISHED.", input.keyframe_new.id);
 }
 
@@ -43,17 +72,10 @@ void loop_factor(common::Registration input) {
   ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION FINISHED.", input.factor_loop.id_1, input.factor_loop.id_1);
 }
 
-//geometry_msgs::Pose2D test_values(gtsam::Values input) {
-//  input.print();
-//  return
-//}
-
 void solve() {
   ROS_INFO("SOLVE STARTED.");
   gtsam::Values poses_opti = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
-  //poses_opti.print();
   gtsam::Marginals marginals(graph, poses_opti);
-  //marginals.print();
 
   for(int i = 0; i < keyframes.size(); i++) {
     keyframes[i].pose_opti.pose.x = poses_opti.at<gtsam::Pose2>(keyframes[i].id).x();
@@ -115,25 +137,14 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
 
 void registration_callback(const common::Registration& input) {
   ROS_INFO("###REGISTRATION CALLBACK STARTED.###");
-  if(!keyframes.empty()) {
-    ROS_INFO("No. of Keyframes = %lu", keyframes.size() );
-    ROS_INFO("ID of Last Keyframe = %d", keyframes.back().id);
-    ROS_INFO("ts of Last Keyframe = %f", keyframes.back().ts.toSec());
-    ROS_INFO("height+width of pointcloud of Last Keyframe = %u %u",
-	     keyframes.back().pointcloud.height,
-	     keyframes.back().pointcloud.width);
+
+  if (input.keyframe_last.id == 0) {
+    ROS_INFO("FIRST KEYFRAME ID=%d UPDATE STARTED.", input.keyframe_new.id);
+    keyframes.front().pointcloud = input.keyframe_new.pointcloud;
+    ROS_INFO("FIRST KEYFRAME ID=%d UPDATE FINISHED.", input.keyframe_new.id);
   }
+  
   if(input.keyframe_flag) {
-      if (input.keyframe_last.id == 0) // there was no 'last' keyframe
-      {
-          ROS_INFO("FIRST KEYFRAME ID=%d UPDATE STARTED.", input.keyframe_new.id);
-
-          // No previous keyframe:
-          // attach current scan to the first KF and exit
-          keyframes.front().pointcloud = input.keyframe_new.pointcloud;
-
-          ROS_INFO("FIRST KEYFRAME ID=%d UPDATE FINISHED.", input.keyframe_new.id);
-      }else
     new_factor(input);
   }
 
@@ -147,32 +158,8 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "graph");
   ros::NodeHandle n;
 
-  // Init keyframe ID factory
   keyframe_IDs = 0;
-
-  // JS: Create first keyframe
-  double x_prior = 0, y_prior = 0, th_prior = 0; // initial pose
-  Eigen::MatrixXd Q(3, 3);
-  Q.Zero(3, 3);
-  Q(0, 0) = sigma_xy_prior*sigma_xy_prior;
-  Q(1, 1) = sigma_xy_prior*sigma_xy_prior;
-  Q(2, 2) = sigma_th_prior*sigma_th_prior;
-  
-  gtsam::noiseModel::Gaussian::shared_ptr priorNoise = gtsam::noiseModel::Gaussian::Covariance( Q );
-  keyframe_IDs++;
-  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(keyframe_IDs, gtsam::Pose2(x_prior, y_prior, th_prior), priorNoise));
-  initial.insert(keyframe_IDs, gtsam::Pose2(x_prior, y_prior, th_prior));
-
-  // push the first keyframe into keyframes vector
-  common::Keyframe keyframe_first;
-  keyframe_first.id = keyframe_IDs;
-  keyframe_first.pose_opti.pose.x = x_prior;
-  keyframe_first.pose_opti.pose.y = y_prior;
-  keyframe_first.pose_opti.pose.theta = th_prior;
-
-  keyframes.push_back(keyframe_first);
-
-
+  prior_factor();
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
   ros::ServiceServer last_keyframe_service = n.advertiseService("/graph/last_keyframe", last_keyframe);
