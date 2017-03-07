@@ -115,6 +115,16 @@ void registration_callback(const common::Registration& input) {
 	     keyframes.back().pointcloud.width);
   }
   if(input.keyframe_flag) {
+      if (input.keyframe_last.id == 0) // there was no 'last' keyframe
+      {
+          ROS_INFO("FIRST KEYFRAME ID=%d UPDATE STARTED.", input.keyframe_new.id);
+
+          // No previous keyframe:
+          // attach current scan to the first KF and exit
+          keyframes.front().pointcloud = input.keyframe_new.pointcloud;
+
+          ROS_INFO("FIRST KEYFRAME ID=%d UPDATE FINISHED.", input.keyframe_new.id);
+      }else
     new_factor(input);
   }
 
@@ -128,8 +138,11 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "graph");
   ros::NodeHandle n;
 
+  // Init keyframe ID factory
   keyframe_IDs = 0;
 
+  // JS: Create first keyframe
+  double x_prior = 0, y_prior = 0, th_prior = 0; // initial pose
   Eigen::MatrixXd Q(3, 3);
   Q.Zero(3, 3);
   Q(0, 0) = 0.1;
@@ -137,7 +150,20 @@ int main(int argc, char** argv) {
   Q(2, 2) = 0.1;
   
   gtsam::noiseModel::Gaussian::shared_ptr priorNoise = gtsam::noiseModel::Gaussian::Covariance( Q );
-  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(1, gtsam::Pose2(0, 0, 0), priorNoise));
+  keyframe_IDs++;
+  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(keyframe_IDs, gtsam::Pose2(x_prior, y_prior, th_prior), priorNoise));
+  initial.insert(keyframe_IDs, gtsam::Pose2(x_prior, y_prior, th_prior));
+
+  // push the first keyframe into keyframes vector
+  common::Keyframe keyframe_first;
+  keyframe_first.id = keyframe_IDs;
+  keyframe_first.pose_odom.pose.x_prior = x_prior;
+  keyframe_first.pose_odom.pose.y_prior = y_prior;
+  keyframe_first.pose_odom.pose.th = th_prior;
+
+  keyframes.push_back(keyframe_first);
+
+
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
   ros::ServiceServer last_keyframe_service = n.advertiseService("/graph/last_keyframe", last_keyframe);

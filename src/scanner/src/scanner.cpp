@@ -99,11 +99,22 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     
     registration_pub.publish(output);
   } else {
+      // There was no 'last' keyframe
+      // It appears we are processing the first scan ever
+      // Therefore, we want to mark it as a special case
+      // We do so by setting the message results appropriately:
+      //    factor_new.id1 = 0;
+      //    factor_new.id2 = 0;
+      //    keyframe_last.id = 0; // really, there was no 'last' keyframe
     common::Registration output;
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
     output.keyframe_flag = true;
     output.loop_closure_flag = false;
     output.keyframe_new.pointcloud = input_pointcloud;
+    output.keyframe_new.id  = 0;
+    output.keyframe_last.id = 0;
+    output.factor_new.id_1  = 0;
+    output.factor_new.id_2  = 0;
     registration_pub.publish(output);
   }
 }
