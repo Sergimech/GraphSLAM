@@ -1,5 +1,6 @@
 #include <math.h>
 #include <vector>
+#include <deque>
 
 #include <Eigen/Core>
 
@@ -17,8 +18,9 @@
 // Please feel free to consult me
 
 double vx, vy, vth;
+double k_d_d = 0.1, k_r_d = 0.1, k_r_r = 0.1; // TODO migrate to rosparams
 //, Delta_x, Delta_y, Delta_th; // JS: We do not need Delta
-std::vector<common::Odometry> buffer_odom;
+std::deque<common::Odometry> buffer_odom; // JS: changed vector --> deque for an efficient pop_front().
 
 common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::MatrixXd m) {
   common::Pose2DWithCovariance output;
@@ -67,13 +69,14 @@ void vel_callback(const geometry_msgs::Twist::ConstPtr& input) {
 
 void add_to_buffer(common::Odometry input) {
   if(buffer_odom.size() > 1000) {
-    buffer_odom.clear();
+    // buffer_odom.clear(); // JS: clear() is not a good policy. Use a deque for the buffer and use pop_front() instead.
+      buffer_odom.pop_front();
   }
 
   buffer_odom.push_back(input);
 }
 
-// JS: Rename and adjust API to between(keyframe , keyframe) as in the document
+// JS: Rename and adjust API to 'between(keyframe , keyframe)' as in the document
 // JS: or, otherwise, just leave as a buffer request, in such case return only one odometry instance, not the increment between two instances.
 bool odometry_buffer_request(common::OdometryBuffer::Request &req, common::OdometryBuffer::Response &res) {
   int buffer_search_position = 0;
