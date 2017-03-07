@@ -31,6 +31,8 @@ const double k_disp_disp = 0.1;
 const double k_rot_disp = 0.1;
 const double k_rot_rot = 0.1;
 
+// JS: If this helper function is needed, I would suggest to place it in packege 'common' for others to use.
+// JS: Also, rename 'm' --> 'Q' as the covariances matrix.
 common::Pose2DWithCovariance create_Pose2DWithCovariance_msg(double x, double y, double th, Eigen::MatrixXd m) {
   common::Pose2DWithCovariance output;
   output.pose.x = x;
@@ -84,31 +86,41 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
 
   if(converged) {
     if(converged_fitness > converged_fitness_threshold) {
+
+        //-------------
+        // JS: this could be a small helper function such as make_delta() in the Drive doc
       double Dx = transform(0, 3);
       double Dy = transform(1, 3);
       double Dth = atan2( transform(1, 0), transform(0, 0) );
+      //-------------------
 
+
+      //-------------------
+      // JS: We could use a 'common' helper such as compute_covariance() in the Drive doc
       double Dl = sqrt( pow( Dx, 2 ) + pow( Dy, 2) );
       double sigma_x_squared = k_disp_disp * Dl;
       double sigma_y_squared = k_disp_disp * Dl;
       double sigma_th_squared = ( k_rot_disp * Dl ) + ( k_rot_rot * Dth );
-
       Eigen::MatrixXd Q(3, 3);
       Q(0, 0) = sigma_x_squared;
       Q(1, 1) = sigma_y_squared;
       Q(2, 2) = sigma_th_squared;
+      //------------------
 
+      //------------------
+      // JS: here you can use the function create_Pose2DWithCovariance_msg() above
       common::Pose2DWithCovariance Delta;
       Delta.pose.x = Dx;
       Delta.pose.y = Dy;
       Delta.pose.theta = Dth;
-    
       for(int i = 0; i < Q.rows(); i++) {
 	for(int j = 0; j < Q.cols(); j++) {
 	  Delta.covariance[( i * Q.rows() ) + j] = Q(i, j);
 	}
       }
+      //--------------------
     
+      // JS: OK
       output.factor_new.delta = Delta;
       output.factor_loop.delta = Delta;
       output.keyframe_flag = true;
@@ -148,16 +160,18 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
       output.factor_loop.delta = registration_closest.factor_loop.delta;
       output.loop_closure_flag = registration_closest.keyframe_flag;
     }
+    // JS: publish here
   } else {
+      // No 'last' KF returned ==> we are in the process of making the first KF!
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
-    common::Registration keyframe_first;
+    common::Registration keyframe_first; // JS: rename to 'registration_first_KF' or similar
     keyframe_first.keyframe_flag = true;
     keyframe_first.loop_closure_flag = false;
     keyframe_first.keyframe_new.pointcloud = input_pointcloud;
     registration_pub.publish(keyframe_first);
   }
 
-  registration_pub.publish(output);
+  registration_pub.publish(output); // this publish should be inside the 'if' (line 163), otherwise in the 'else' case we would publish rubbish here.
 }
 
 int main(int argc, char** argv) {
