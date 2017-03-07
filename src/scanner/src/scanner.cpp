@@ -3,7 +3,10 @@
 ros::Publisher registration_pub;
 ros::ServiceClient keyframe_last_client;
 ros::ServiceClient keyframe_closest_client;
+
+// Tuning constants:
 const double converged_fitness_threshold = 0.15; // TODO migrate to rosparams
+double k_disp_disp = 0.1, k_rot_disp = 0.1, k_rot_rot = 0.1; // TODO migrate to rosparams
 
 sensor_msgs::PointCloud2 scan_to_pointcloud(sensor_msgs::LaserScan input) {
   ROS_INFO("SCAN TO POINTCLOUD STARTED.");
@@ -48,7 +51,7 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
   if(converged) {
     if(converged_fitness > converged_fitness_threshold) {
       geometry_msgs::Pose2D transform_Delta = make_Delta(transform);
-      Eigen::MatrixXd covariance_Delta = compute_covariance(transform_Delta);
+      Eigen::MatrixXd covariance_Delta = compute_covariance(k_disp_disp, k_rot_disp, k_rot_rot, transform_Delta);
       common::Pose2DWithCovariance Delta = create_Pose2DWithCovariance_msg(transform_Delta, covariance_Delta);
     
       output.factor_new.delta = Delta;
