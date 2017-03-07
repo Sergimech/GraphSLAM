@@ -55,3 +55,13 @@ Eigen::MatrixXd covariance_to_eigen(common::Factor input) {
 
   return Q;
 }
+
+common::Pose2DWithCovariance eigen_to_covariance(common::Pose2DWithCovariance pose, Eigen::MatrixXd Q) {
+  for(int i = 0; i < Q.rows(); i++) {
+    for(int j = 0; j < Q.cols(); j++) {
+      pose.covariance[( i * Q.rows() ) + j] = Q(i, j);
+    }
+  }
+
+  return pose;
+}

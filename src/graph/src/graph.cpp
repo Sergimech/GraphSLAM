@@ -43,19 +43,26 @@ void loop_factor(common::Registration input) {
   ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION FINISHED.", input.factor_loop.id_1, input.factor_loop.id_1);
 }
 
+//geometry_msgs::Pose2D test_values(gtsam::Values input) {
+//  input.print();
+//  return
+//}
+
 void solve() {
   ROS_INFO("SOLVE STARTED.");
   gtsam::Values poses_opti = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
-  poses_opti.print();
+  //poses_opti.print();
   gtsam::Marginals marginals(graph, poses_opti);
-  marginals.print();
+  //marginals.print();
 
   for(int i = 0; i < keyframes.size(); i++) {
-    //keyframes[i].pose_opti.pose = poses_opti.at(keyframes[i].id);
-    //keyframes[i].pose_opti.covariance = marginals.marginalCovariance(keyframes[i].id);
+    keyframes[i].pose_opti.pose.x = poses_opti.at<gtsam::Pose2>(keyframes[i].id).x();
+    keyframes[i].pose_opti.pose.y = poses_opti.at<gtsam::Pose2>(keyframes[i].id).y();
+    keyframes[i].pose_opti.pose.theta = poses_opti.at<gtsam::Pose2>(keyframes[i].id).theta();
+    Eigen::MatrixXd pose_opti_covariance = marginals.marginalCovariance(keyframes[i].id);
+    keyframes[i].pose_opti = eigen_to_covariance(keyframes[i].pose_opti, pose_opti_covariance);
   }
 
-  // JS: make initial take the last solution, so that next iteration is simpler:
   initial = poses_opti;
   ROS_INFO("SOLVE FINISHED.");
 }
@@ -159,9 +166,9 @@ int main(int argc, char** argv) {
   // push the first keyframe into keyframes vector
   common::Keyframe keyframe_first;
   keyframe_first.id = keyframe_IDs;
-  keyframe_first.pose_odom.pose.x_prior = x_prior;
-  keyframe_first.pose_odom.pose.y_prior = y_prior;
-  keyframe_first.pose_odom.pose.th = th_prior;
+  keyframe_first.pose_opti.pose.x = x_prior;
+  keyframe_first.pose_opti.pose.y = y_prior;
+  keyframe_first.pose_opti.pose.theta = th_prior;
 
   keyframes.push_back(keyframe_first);
 

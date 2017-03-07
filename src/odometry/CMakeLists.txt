@@ -17,6 +17,6 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
   )
 
-add_executable(odometry src/odometry.cpp)
-target_link_libraries(odometry ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
-add_dependencies(odometry common_gencpp)
+#add_executable(odometry src/odometry.cpp)
+#target_link_libraries(odometry ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
+#add_dependencies(odometry common_gencpp)
