@@ -177,8 +177,13 @@ int main(int argc, char** argv) {
     // JS: we need to create a Odometry message with the integrated pose and the timestamp, consult the Drive document
     // JS: we need to publish the last pose, of type Pose2D, with (x, y, th)
     // JS: proceed as follows (consult the Drive doc, and use compose() for the integration of 'delta' onto the pose (x,y,th).
-    //   - Integrate pose
-    //   - Compute covariance
+    //   - Integrate pose (below a copypaste from HW1):
+    //    //### Integrate Global Pose ###
+    //    x  += delta_x * cos ( th ) - delta_y * sin ( th );
+    //    y  += delta_x * sin ( th ) + delta_y * cos ( th );
+    //    th += delta_th;
+    //    th  = std::fmod( th + M_PI, 2 * M_PI) - M_PI;
+    //   - Compute covariance, using k_d_d, k_r_d, and k_r_r as in scanner.cpp
     //   - Construct odometry message
     //   - Bufferize odometry message
     //   - Publish Pose2D(x,y,z)
