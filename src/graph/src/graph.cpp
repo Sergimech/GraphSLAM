@@ -132,7 +132,8 @@ void registration_callback(const common::Registration& input) {
   if(input.loop_closure_flag) {
     loop_factor(input);
   }
-  
+
+  //solve();
   ROS_INFO("###REGISTRATION CALLBACK FINISHED.###");
 }
 
