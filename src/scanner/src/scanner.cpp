@@ -117,10 +117,18 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
   }
 
   if(!keyframe_last_request_returned) {
+    sensor_msgs::LaserScan prior_scan = input;
+
+    if(keyframe_IDs == 0) {
+      for(int i = 0; i < prior_scan.ranges.size(); i++) {
+	prior_scan.ranges[i] += 0.5;
+      }
+    }
+    
     common::Registration output;
-    sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
+    sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(prior_scan);
     output.keyframe_new.id = keyframe_IDs;
-    output.keyframe_flag = true;
+    output.keyframe_flag = false;
     output.loop_closure_flag = false;
     output.keyframe_new.pointcloud = input_pointcloud;
     registration_pub.publish(output);
@@ -132,7 +140,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle n;
 
   ros::Subscriber scanner_sub = n.subscribe("/base_scan", 1, scanner_callback);
-  keyframe_IDs = 1;
+  keyframe_IDs = 0;
 
   registration_pub  = n.advertise<common::Registration>("/scanner/registration", 1);
   pointcloud_debug_pub = n.advertise<sensor_msgs::PointCloud2>("/scanner/debug_pointcloud", 1);

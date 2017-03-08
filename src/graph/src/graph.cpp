@@ -7,10 +7,11 @@ std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously
 double sigma_xy_prior = 0.1; // TODO migrate to rosparams
 double sigma_th_prior = 0.1; // TODO migrate to rosparams
 
-void prior_factor() {
+void prior_factor(common::Keyframe input) {
   double x_prior = 0;
   double y_prior = 0;
   double th_prior = 0;
+  double id_prior = 0;
   
   Eigen::MatrixXd Q(3, 3);
   Q.Zero(3, 3);
@@ -19,11 +20,12 @@ void prior_factor() {
   Q(2, 2) = sigma_th_prior * sigma_th_prior;
   
   gtsam::noiseModel::Gaussian::shared_ptr priorNoise = gtsam::noiseModel::Gaussian::Covariance( Q );
-  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(0,
+  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(input.id,
 						   gtsam::Pose2(x_prior,
 								y_prior,
 								th_prior), priorNoise));
-  initial.insert(0, gtsam::Pose2(x_prior, y_prior, th_prior));
+  initial.insert(input.id, gtsam::Pose2(x_prior, y_prior, th_prior));
+  keyframes.push_back(input);
 }
 
 void new_factor(common::Registration input) {
@@ -61,6 +63,8 @@ void loop_factor(common::Registration input) {
 
 void solve() {
   ROS_INFO("SOLVE STARTED.");
+  //graph.print();
+  //initial.print();
   gtsam::Values poses_opti = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
   gtsam::Marginals marginals(graph, poses_opti);
 
@@ -125,6 +129,10 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
 void registration_callback(const common::Registration& input) {
   ROS_INFO("###REGISTRATION CALLBACK STARTED.###");
 
+  if(input.keyframe_new.id == 0) {
+    prior_factor(input.keyframe_new);
+  }
+
   if(input.keyframe_flag) {
     new_factor(input);
   }
@@ -140,8 +148,6 @@ void registration_callback(const common::Registration& input) {
 int main(int argc, char** argv) {
   ros::init(argc, argv, "graph");
   ros::NodeHandle n;
-
-  prior_factor();
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
   ros::ServiceServer last_keyframe_service = n.advertiseService("/graph/last_keyframe", last_keyframe);
