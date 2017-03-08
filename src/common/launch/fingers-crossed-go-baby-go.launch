@@ -2,8 +2,7 @@
 <launch>
   <node name="rviz" type="rviz" pkg="rviz" args="-d $(find common)/rviz_cfg/stage.rviz"/>
   <node pkg="stage_ros" type="stageros" name="stageros" args="$(find common)/world/willow.world"/>
-
-<!--  <node pkg="odometry" type="odometry" name="odometry" output="screen"/> -->
+  
   <node pkg="scanner" type="scanner" name="scanner" output="screen"/>
-  <node pkg="graph" type="graph" name="graph" output="screen" launch-prefix="gdb -ex run --args"/>
+  <node pkg="graph" type="graph" name="graph" output="screen"/>
 </launch>

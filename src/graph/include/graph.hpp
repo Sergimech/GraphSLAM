@@ -1,8 +1,11 @@
 #include <vector>
 #include <math.h>
 #include <iostream>
+#include <string>
+#include <sstream>
 
 #include <ros/ros.h>
+#include <ros/console.h>
 
 #include <common/Factor.h>
 #include <common/Keyframe.h>
@@ -26,13 +29,11 @@
 
 common::Pose2DWithCovariance compose(common::Pose2DWithCovariance input_1, common::Pose2DWithCovariance input_2) {
   common::Pose2DWithCovariance output;
-  double input_1_th = input_1.pose.theta;
-  double input_2_th = input_2.pose.theta;
-  double cos_th = cos( input_1_th );
-  double sin_th = sin( input_1_th );
+  double cos_th = cos( input_1.pose.theta );
+  double sin_th = sin( input_1.pose.theta );
   double dx = input_2.pose.x - input_1.pose.x;
   double dy = input_2.pose.y - input_1.pose.y;
-  double dth = input_2_th - input_1_th;
+  double dth = input_2.pose.theta - input_1.pose.theta;
   dth = std::fmod(dth + M_PI, 2 * M_PI) - M_PI;
   output.pose.x = ( cos_th * dx ) + ( sin_th * dy );
   output.pose.y = ( -sin_th * dx ) + ( cos_th *dy );

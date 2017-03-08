@@ -28,3 +28,4 @@ include_directories(
 add_executable(scanner src/scanner.cpp)
 target_link_libraries(scanner ${catkin_LIBRARIES} ${EIGEN_LIBRARIES})
 add_dependencies(scanner common_gencpp)
+

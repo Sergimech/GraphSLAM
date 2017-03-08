@@ -1,4 +1,8 @@
 #include <ros/ros.h>
+#include <ros/console.h>
+
+#include <sstream>
+#include <string>
 
 #include <tf/transform_listener.h>
 

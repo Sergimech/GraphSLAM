@@ -13,7 +13,6 @@ void prior_factor() {
   double y_prior = 0;
   double th_prior = 0;
   
-
   Eigen::MatrixXd Q(3, 3);
   Q.Zero(3, 3);
   Q(0, 0) = sigma_xy_prior * sigma_xy_prior;
@@ -26,19 +25,10 @@ void prior_factor() {
 								y_prior,
 								th_prior), priorNoise));
   initial.insert(keyframe_IDs, gtsam::Pose2(x_prior, y_prior, th_prior));
-
-  common::Keyframe keyframe_first;
-  keyframe_first.id = keyframe_IDs;
-  keyframe_first.pose_opti.pose.x = x_prior;
-  keyframe_first.pose_opti.pose.y = y_prior;
-  keyframe_first.pose_opti.pose.theta = th_prior;
-
-  keyframes.push_back(keyframe_first);
-
-  keyframe_IDs++;
 }
 
 void new_factor(common::Registration input) {
+  keyframe_IDs++;
   input.keyframe_new.id = keyframe_IDs;
   input.factor_new.id_2 = keyframe_IDs;
   ROS_INFO("NEW FACTOR ID=%d CREATION STARTED.", input.keyframe_new.id);
@@ -47,7 +37,7 @@ void new_factor(common::Registration input) {
 
   input.keyframe_new.pose_opti = pose_new;
   keyframes.push_back(input.keyframe_new);
-  
+
   initial.insert(input.keyframe_new.id, gtsam::Pose2(pose_new.pose.x, pose_new.pose.y, pose_new.pose.theta));
 
   Eigen::MatrixXd Q = covariance_to_eigen(input.factor_new);
@@ -58,8 +48,7 @@ void new_factor(common::Registration input) {
 					       gtsam::Pose2(input.factor_new.delta.pose.x,
 							    input.factor_new.delta.pose.y,
 							    input.factor_new.delta.pose.theta), delta_Model));
-  keyframe_IDs++;
-  ROS_INFO("NEW FACTOR ID=%d CREATION FINISHED.", input.keyframe_new.id);
+  ROS_INFO("NEW FACTOR ID=%d keyframes_size %lu CREATION FINISHED.", input.keyframe_new.id, keyframes.size());
 }
 
 void loop_factor(common::Registration input) {
@@ -140,12 +129,6 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
 void registration_callback(const common::Registration& input) {
   ROS_INFO("###REGISTRATION CALLBACK STARTED.###");
 
-  if (input.keyframe_last.id < 0) {
-    ROS_INFO("FIRST KEYFRAME ID=%d UPDATE STARTED.", input.keyframe_new.id);
-    keyframes.front().pointcloud = input.keyframe_new.pointcloud;
-    ROS_INFO("FIRST KEYFRAME ID=%d UPDATE FINISHED.", input.keyframe_new.id);
-  }
-  
   if(input.keyframe_flag) {
     new_factor(input);
   }
@@ -153,6 +136,7 @@ void registration_callback(const common::Registration& input) {
   if(input.loop_closure_flag) {
     loop_factor(input);
   }
+  
   ROS_INFO("###REGISTRATION CALLBACK FINISHED.###");
 }
 

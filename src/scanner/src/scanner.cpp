@@ -1,6 +1,7 @@
 #include <scanner.hpp>
 
 ros::Publisher registration_pub;
+ros::Publisher pointcloud_debug_pub;
 ros::ServiceClient keyframe_last_client;
 ros::ServiceClient keyframe_closest_client;
 
@@ -75,8 +76,8 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
   if(keyframe_last_request_returned) {
     common::Registration output;
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
-    ROS_INFO(" %u ", input_pointcloud.width);
     sensor_msgs::PointCloud2 keyframe_last_pointcloud = keyframe_last_request.response.keyframe_last.pointcloud;
+    
     ROS_INFO("GICP registration_last STARTED");
     common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
     ROS_INFO("GICP registration_last FINISHED");
@@ -84,6 +85,7 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     output.keyframe_flag = registration_last.keyframe_flag;
     output.loop_closure_flag = false;
     output.keyframe_new.ts = input.header.stamp;
+    output.keyframe_new.pointcloud = input_pointcloud;
     output.factor_new.delta = registration_last.factor_new.delta;
           
     common::ClosestKeyframe keyframe_closest_request;
@@ -101,23 +103,14 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     }
     
     registration_pub.publish(output);
-  } else {
-      // There was no 'last' keyframe
-      // It appears we are processing the first scan ever
-      // Therefore, we want to mark it as a special case
-      // We do so by setting the message results appropriately:
-      //    factor_new.id1 = -1;
-      //    factor_new.id2 = -1;
-      //    keyframe_last.id = -1; // really, there was no 'last' keyframe
+  }
+
+  if(!keyframe_last_request_returned) {
     common::Registration output;
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
     output.keyframe_flag = true;
     output.loop_closure_flag = false;
     output.keyframe_new.pointcloud = input_pointcloud;
-    output.keyframe_new.id  = -1;
-    output.keyframe_last.id = -1;
-    output.factor_new.id_1  = -1;
-    output.factor_new.id_2  = -1;
     registration_pub.publish(output);
   }
 }
@@ -129,6 +122,7 @@ int main(int argc, char** argv) {
   ros::Subscriber scanner_sub = n.subscribe("/base_scan", 1, scanner_callback);
 
   registration_pub  = n.advertise<common::Registration>("/scanner/registration", 1);
+  pointcloud_debug_pub = n.advertise<sensor_msgs::PointCloud2>("/scanner/debug_pointcloud", 1);
 
   keyframe_last_client = n.serviceClient<common::LastKeyframe>("/graph/last_keyframe");
   keyframe_closest_client = n.serviceClient<common::ClosestKeyframe>("/graph/closest_keyframe");
