@@ -13,6 +13,7 @@ void prior_factor() {
   double y_prior = 0;
   double th_prior = 0;
   
+
   Eigen::MatrixXd Q(3, 3);
   Q.Zero(3, 3);
   Q(0, 0) = sigma_xy_prior * sigma_xy_prior;
@@ -33,6 +34,7 @@ void prior_factor() {
   keyframe_first.pose_opti.pose.theta = th_prior;
 
   keyframes.push_back(keyframe_first);
+
   keyframe_IDs++;
 }
 
@@ -138,7 +140,7 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
 void registration_callback(const common::Registration& input) {
   ROS_INFO("###REGISTRATION CALLBACK STARTED.###");
 
-  if (input.keyframe_last.id == 0) {
+  if (input.keyframe_last.id < 0) {
     ROS_INFO("FIRST KEYFRAME ID=%d UPDATE STARTED.", input.keyframe_new.id);
     keyframes.front().pointcloud = input.keyframe_new.pointcloud;
     ROS_INFO("FIRST KEYFRAME ID=%d UPDATE FINISHED.", input.keyframe_new.id);
