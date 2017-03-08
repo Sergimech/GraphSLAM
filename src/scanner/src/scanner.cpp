@@ -8,6 +8,7 @@ ros::ServiceClient keyframe_closest_client;
 // Tuning constants:
 const double converged_fitness_threshold = 0.15; // TODO migrate to rosparams
 double k_disp_disp = 0.1, k_rot_disp = 0.1, k_rot_rot = 0.1; // TODO migrate to rosparams
+int keyframe_IDs;
 
 sensor_msgs::PointCloud2 scan_to_pointcloud(sensor_msgs::LaserScan input) {
   ROS_INFO("SCAN TO POINTCLOUD STARTED.");
@@ -77,6 +78,7 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     common::Registration output;
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
     sensor_msgs::PointCloud2 keyframe_last_pointcloud = keyframe_last_request.response.keyframe_last.pointcloud;
+    keyframe_IDs = keyframe_last_request.response.keyframe_last.id + 1;
     
     ROS_INFO("GICP registration_last STARTED");
     common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
@@ -84,7 +86,10 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     
     output.keyframe_flag = registration_last.keyframe_flag;
     output.loop_closure_flag = false;
+    output.keyframe_new.id = keyframe_IDs;
     output.keyframe_new.ts = input.header.stamp;
+    output.factor_new.id_1 = keyframe_last_request.response.keyframe_last.id;
+    output.factor_new.id_2 = output.keyframe_new.id;
     output.keyframe_new.pointcloud = input_pointcloud;
     output.factor_new.delta = registration_last.factor_new.delta;
           
@@ -98,6 +103,12 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
       ROS_INFO("GICP registration_closest STARTED");
       common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
       ROS_INFO("GICP registration_closest FINISHED");
+
+      ROS_INFO("factor_loop.id_1 = %d, factor_loop.id_2 = %d",
+	       keyframe_last_request.response.keyframe_last.id,
+	       keyframe_IDs);
+      output.factor_loop.id_1 = keyframe_last_request.response.keyframe_last.id;
+      output.factor_loop.id_2 = keyframe_IDs;
       output.factor_loop.delta = registration_closest.factor_loop.delta;
       output.loop_closure_flag = registration_closest.keyframe_flag;
     }
@@ -108,6 +119,7 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
   if(!keyframe_last_request_returned) {
     common::Registration output;
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
+    output.keyframe_new.id = keyframe_IDs;
     output.keyframe_flag = true;
     output.loop_closure_flag = false;
     output.keyframe_new.pointcloud = input_pointcloud;
@@ -120,6 +132,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle n;
 
   ros::Subscriber scanner_sub = n.subscribe("/base_scan", 1, scanner_callback);
+  keyframe_IDs = 1;
 
   registration_pub  = n.advertise<common::Registration>("/scanner/registration", 1);
   pointcloud_debug_pub = n.advertise<sensor_msgs::PointCloud2>("/scanner/debug_pointcloud", 1);

@@ -4,7 +4,6 @@ gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
 std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously resized. Better use std::deque?
-int keyframe_IDs;
 double sigma_xy_prior = 0.1; // TODO migrate to rosparams
 double sigma_th_prior = 0.1; // TODO migrate to rosparams
 
@@ -20,21 +19,18 @@ void prior_factor() {
   Q(2, 2) = sigma_th_prior * sigma_th_prior;
   
   gtsam::noiseModel::Gaussian::shared_ptr priorNoise = gtsam::noiseModel::Gaussian::Covariance( Q );
-  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(keyframe_IDs,
+  graph.push_back(gtsam::PriorFactor<gtsam::Pose2>(0,
 						   gtsam::Pose2(x_prior,
 								y_prior,
 								th_prior), priorNoise));
-  initial.insert(keyframe_IDs, gtsam::Pose2(x_prior, y_prior, th_prior));
+  initial.insert(0, gtsam::Pose2(x_prior, y_prior, th_prior));
 }
 
 void new_factor(common::Registration input) {
-  keyframe_IDs++;
-  input.keyframe_new.id = keyframe_IDs;
-  input.factor_new.id_2 = keyframe_IDs;
   ROS_INFO("NEW FACTOR ID=%d CREATION STARTED.", input.keyframe_new.id);
 
   common::Pose2DWithCovariance pose_new = compose(input.keyframe_last.pose_opti, input.factor_new.delta);
-
+  
   input.keyframe_new.pose_opti = pose_new;
   keyframes.push_back(input.keyframe_new);
 
@@ -52,7 +48,7 @@ void new_factor(common::Registration input) {
 }
 
 void loop_factor(common::Registration input) {
-  ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION STARTED.", input.factor_loop.id_1, input.factor_loop.id_1);
+  ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION STARTED.", input.factor_loop.id_1, input.factor_loop.id_2);
   Eigen::MatrixXd Q = covariance_to_eigen(input.factor_loop);
   gtsam::noiseModel::Gaussian::shared_ptr delta_Model = gtsam::noiseModel::Gaussian::Covariance( Q );
   graph.add(gtsam::BetweenFactor<gtsam::Pose2>(input.factor_loop.id_1,
@@ -60,7 +56,7 @@ void loop_factor(common::Registration input) {
 					       gtsam::Pose2(input.factor_loop.delta.pose.x,
 							    input.factor_loop.delta.pose.y,
 							    input.factor_loop.delta.pose.theta), delta_Model));
-  ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION FINISHED.", input.factor_loop.id_1, input.factor_loop.id_1);
+  ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION FINISHED.", input.factor_loop.id_1, input.factor_loop.id_2);
 }
 
 void solve() {
@@ -144,7 +140,6 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "graph");
   ros::NodeHandle n;
 
-  keyframe_IDs = 0;
   prior_factor();
   
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
