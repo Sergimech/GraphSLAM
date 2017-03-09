@@ -99,18 +99,18 @@ void loop_factor(common::Registration input)
 }
 
 void solve() {
-  ROS_INFO("SOLVE STARTED.");
+//  ROS_INFO("SOLVE STARTED.");
   //graph.print();
   //initial.print();
   gtsam::Values poses_opti = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
-  gtsam::Marginals marginals(graph, poses_opti);
+//  gtsam::Marginals marginals(graph, poses_opti);
 
   for(int i = 0; i < keyframes.size(); i++) {
     keyframes[i].pose_opti.pose.x = poses_opti.at<gtsam::Pose2>(keyframes[i].id).x();
     keyframes[i].pose_opti.pose.y = poses_opti.at<gtsam::Pose2>(keyframes[i].id).y();
     keyframes[i].pose_opti.pose.theta = poses_opti.at<gtsam::Pose2>(keyframes[i].id).theta();
-    Eigen::MatrixXd pose_opti_covariance = marginals.marginalCovariance(keyframes[i].id);
-    keyframes[i].pose_opti = eigen_to_covariance(keyframes[i].pose_opti, pose_opti_covariance);
+//    Eigen::MatrixXd pose_opti_covariance = marginals.marginalCovariance(keyframes[i].id);
+//    keyframes[i].pose_opti = eigen_to_covariance(keyframes[i].pose_opti, pose_opti_covariance);
   }
 
   initial = poses_opti;
