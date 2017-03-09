@@ -51,7 +51,7 @@ Visualization Manager:
       Color: 0; 170; 0
       Enabled: true
       Keep: 100
-      Length: 1
+      Length: 0.25
       Name: Odometry
       Position Tolerance: 0.100000001
       Topic: /odom
@@ -91,8 +91,7 @@ Visualization Manager:
       Marker Topic: visualization_marker
       Name: Marker
       Namespaces:
-        arrow_scan: true
-        arrows: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -119,7 +118,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.8095131
+      Distance: 4.12406254
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -133,10 +132,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 1.20039773
+      Pitch: 1.03039789
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.16855502
+      Yaw: 2.46855021
     Saved: ~
 Window Geometry:
   Displays:
