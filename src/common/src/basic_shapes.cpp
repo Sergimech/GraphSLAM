@@ -94,9 +94,9 @@ int main( int argc, char** argv )
       create_arrow(keyframes.keyframes[i]);
     }
   
-    for(int i = 0; i < keyframes.keyframes.size(); i++) {
+    //    for(int i = 0; i < keyframes.keyframes.size(); i++) {
       //      create_scan(keyframes.keyframes[i]);
-    }
+    // }
     
     ros::spinOnce();
     r.sleep();

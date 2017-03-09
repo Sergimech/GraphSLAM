@@ -50,7 +50,7 @@ void prior_factor(common::Registration input)
 //    input.keyframe_new.pose_opti = create_Pose2DWithCovariance_msg(x_prior, y_prior, th_prior, Q); // TODO fix this
     input.keyframe_new.pose_opti.pose.x  = x_prior;
     input.keyframe_new.pose_opti.pose.y  = y_prior;
-    input.keyframe_new.pose_opti.pose.th = th_prior;
+    input.keyframe_new.pose_opti.pose.theta = th_prior;
     keyframes.push_back(input.keyframe_new);
 
     // Add factor and prior to the graph
@@ -190,7 +190,9 @@ void registration_callback(const common::Registration& input) {
       if(input.loop_closure_flag) {
           loop_factor(input);
       }
-      solve();
+
+      ROS_INFO("%f %f %f", keyframes.back().pose_opti.pose.x,keyframes.back().pose_opti.pose.y,keyframes.back().pose_opti.pose.theta);
+      //      solve();
       publish_keyframes();
   }
 

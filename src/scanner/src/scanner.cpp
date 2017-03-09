@@ -2,11 +2,12 @@
 
 ros::Publisher registration_pub;
 ros::Publisher pointcloud_debug_pub;
+ros::Publisher delta_pub;
 ros::ServiceClient keyframe_last_client;
 ros::ServiceClient keyframe_closest_client;
 
 // Tuning constants:
-const double converged_fitness_threshold = 0.15; // TODO migrate to rosparams
+const double converged_fitness_threshold = 0.1; // TODO migrate to rosparams
 double k_disp_disp = 0.1, k_rot_disp = 0.1, k_rot_rot = 0.1; // TODO migrate to rosparams
 
 sensor_msgs::PointCloud2 scan_to_pointcloud(sensor_msgs::LaserScan input) {
@@ -47,11 +48,14 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
   bool converged = gicp.hasConverged();
   double converged_fitness = gicp.getFitnessScore();
   Eigen::Matrix4f transform = gicp.getFinalTransformation();
+  geometry_msgs::Pose2D transform_Delta = make_Delta(transform);
+  ROS_INFO("%f %f %f", transform_Delta.x, transform_Delta.y, transform_Delta.theta);
+  std::cout << transform << std::endl;
   common::Registration output;
 
   if(converged) {
     if(converged_fitness > converged_fitness_threshold) {
-      geometry_msgs::Pose2D transform_Delta = make_Delta(transform);
+ 
       Eigen::MatrixXd covariance_Delta = compute_covariance(k_disp_disp, k_rot_disp, k_rot_rot, transform_Delta);
       common::Pose2DWithCovariance Delta = create_Pose2DWithCovariance_msg(transform_Delta, covariance_Delta);
     
@@ -162,6 +166,8 @@ int main(int argc, char** argv) {
   ros::Subscriber scanner_sub = n.subscribe("/base_scan", 1, scanner_callback);
 //  keyframe_IDs = 0;
 
+  delta_pub = n.advertise<geometry_msgs::Pose2D>("scanner/delta", 1);
+  
   registration_pub  = n.advertise<common::Registration>("/scanner/registration", 1);
   pointcloud_debug_pub = n.advertise<sensor_msgs::PointCloud2>("/scanner/debug_pointcloud", 1);
 
