@@ -112,11 +112,12 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     
     output.keyframe_flag = registration_last.keyframe_flag;
     output.loop_closure_flag = false;
-    // output.keyframe_new.id = keyframe_IDs;
+    // output.keyframe_new.id = keyframe_IDs; // we do not set new IDs here
     output.keyframe_new.ts = input.header.stamp;
+    output.keyframe_new.pointcloud = input_pointcloud;
+    output.keyframe_last = keyframe_last_request.response.keyframe_last;
     output.factor_new.id_1 = keyframe_last_request.response.keyframe_last.id;
     output.factor_new.id_2 = output.keyframe_new.id;
-    output.keyframe_new.pointcloud = input_pointcloud;
     output.factor_new.delta = registration_last.factor_new.delta;
 
     // Check for loop closures only if on Keyframes
@@ -138,10 +139,12 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
             ROS_INFO("factor_loop.id_1 = %d, factor_loop.id_2 = %d",
                      keyframe_last_request.response.keyframe_last.id,
 					 keyframe_closest_request.response.keyframe_closest.id);
+            output.loop_closure_flag = true;
+            output.keyframe_last = keyframe_last_request.response.keyframe_last;
+            output.keyframe_loop = keyframe_closest_request.response.keyframe_closest;
             output.factor_loop.id_1 = keyframe_last_request.response.keyframe_last.id;
             output.factor_loop.id_2 = keyframe_closest_request.response.keyframe_closest.id;
             output.factor_loop.delta = registration_closest.factor_loop.delta;
-            output.loop_closure_flag = registration_closest.keyframe_flag;
         }
     }
     

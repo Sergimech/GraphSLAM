@@ -4,7 +4,7 @@
 gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
-std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously resized. Better use std::deque?
+std::vector<common::Keyframe> keyframes; // JS: Better use map<key,Keyframe> where key = ID, as in gtsam::Values
 int keyframe_IDs; // Simple ID factory.
 
 // #### TUNING CONSTANTS START
@@ -15,7 +15,7 @@ int keyframes_to_skip_in_loop_closing = 10; // TODO migrate to rosparams
 
 void prior_factor(common::Registration input)
 {
-	ROS_INFO("PRIOR FACTOR STARTED");
+//	ROS_INFO("PRIOR FACTOR STARTED");
     // Advance keyframe ID factory
     keyframe_IDs++;
 
@@ -43,12 +43,12 @@ void prior_factor(common::Registration input)
     graph.add(gtsam::PriorFactor<gtsam::Pose2>(input.keyframe_new.id, pose_prior, noise_prior));
     initial.insert(input.keyframe_new.id, pose_prior);
 
-    ROS_INFO("PRIOR FACTOR ID=%d FINISHED", input.keyframe_new.id);
+    ROS_INFO("PRIOR FACTOR ID=%d CREATED. %lu KF, %lu Factor.", input.keyframe_new.id, keyframes.size(), graph.nrFactors());
 }
 
 void new_factor(common::Registration input)
 {
-    ROS_INFO("NEW FACTOR ID=%d CREATION STARTED.", input.keyframe_new.id);
+//    ROS_INFO("NEW FACTOR ID=%d CREATION STARTED.", input.keyframe_new.id);
 
     // Advance keyframe ID factory
     keyframe_IDs++;
@@ -77,15 +77,12 @@ void new_factor(common::Registration input)
                                                               input.factor_new.delta.pose.theta),
                                                  noise_delta));
 
-    ROS_INFO("NEW FACTOR ID=%d keyframes_size %lu CREATION FINISHED.", input.keyframe_new.id, keyframes.size());
+    ROS_INFO("NEW FACTOR %d-->%d CREATED. %lu KFs, %lu Factors", input.keyframe_last.id, input.keyframe_new.id, keyframes.size(), graph.nrFactors());
 }
 
 void loop_factor(common::Registration input)
 {
-    ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION STARTED.", input.factor_loop.id_1, input.factor_loop.id_2);
-
-    // Advance keyframe ID factory
-    keyframe_IDs++;
+//    ROS_INFO("LOOP FACTOR %d-->%d STARTED.", input.factor_loop.id_1, input.factor_loop.id_2);
 
     // Define new factor
     Eigen::MatrixXd Q = covariance_to_eigen(input.factor_loop);
@@ -98,7 +95,7 @@ void loop_factor(common::Registration input)
                                                               input.factor_loop.delta.pose.y,
                                                               input.factor_loop.delta.pose.theta),
                                                  noise_delta));
-    ROS_INFO("LOOP FACTOR ID_1=%d ID_2=%d CREATION FINISHED.", input.factor_loop.id_1, input.factor_loop.id_2);
+    ROS_INFO("LOOP FACTOR %d-->%d CREATED. %lu KFs, %lu Factors", input.factor_loop.id_1, input.factor_loop.id_2, keyframes.size(), graph.nrFactors());
 }
 
 void solve() {
@@ -179,9 +176,9 @@ void registration_callback(const common::Registration& input) {
       if(input.loop_closure_flag) {
           loop_factor(input);
       }
+      solve();
   }
 
-  solve();
   ROS_INFO("###REGISTRATION CALLBACK FINISHED.###");
 }
 
