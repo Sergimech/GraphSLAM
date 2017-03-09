@@ -8,7 +8,6 @@ ros::ServiceClient keyframe_closest_client;
 // Tuning constants:
 const double converged_fitness_threshold = 0.15; // TODO migrate to rosparams
 double k_disp_disp = 0.1, k_rot_disp = 0.1, k_rot_rot = 0.1; // TODO migrate to rosparams
-int keyframe_IDs;
 
 sensor_msgs::PointCloud2 scan_to_pointcloud(sensor_msgs::LaserScan input) {
   ROS_INFO("SCAN TO POINTCLOUD STARTED.");
@@ -78,7 +77,7 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     common::Registration output;
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
     sensor_msgs::PointCloud2 keyframe_last_pointcloud = keyframe_last_request.response.keyframe_last.pointcloud;
-    keyframe_IDs = keyframe_last_request.response.keyframe_last.id + 1;
+//    keyframe_IDs = keyframe_last_request.response.keyframe_last.id + 1;
     
     ROS_INFO("GICP registration_last STARTED");
     common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
@@ -122,20 +121,20 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
 
   if(!keyframe_last_request_returned) {
       ROS_INFO("No last keyframe provided ########################################################");
-    sensor_msgs::LaserScan prior_scan = input;
+//    sensor_msgs::LaserScan prior_scan = input;
 
-    if(keyframe_IDs == 0) {
-      for(int i = 0; i < prior_scan.ranges.size(); i++) {
-	prior_scan.ranges[i] += 0.5;
-      }
-    }
-    
+//    if(keyframe_IDs == 0) {
+//      for(int i = 0; i < prior_scan.ranges.size(); i++) {
+//	prior_scan.ranges[i] += 0.5;
+//      }
+//    }
+
+      // Set flags, assign pointcloud, and publish
     common::Registration output;
-    sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
-    output.keyframe_new.id = keyframe_IDs;
+    output.first_keyframe_flag = true;
     output.keyframe_flag = false;
     output.loop_closure_flag = false;
-    output.keyframe_new.pointcloud = input_pointcloud;
+    output.keyframe_new.pointcloud = scan_to_pointcloud(input);
     registration_pub.publish(output);
   }
 }
@@ -145,7 +144,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle n;
 
   ros::Subscriber scanner_sub = n.subscribe("/base_scan", 1, scanner_callback);
-  keyframe_IDs = 0;
+//  keyframe_IDs = 0;
 
   registration_pub  = n.advertise<common::Registration>("/scanner/registration", 1);
   pointcloud_debug_pub = n.advertise<sensor_msgs::PointCloud2>("/scanner/debug_pointcloud", 1);

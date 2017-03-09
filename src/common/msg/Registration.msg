@@ -1,4 +1,4 @@
-bool first_flag
+bool first_keyframe_flag
 bool keyframe_flag
 bool loop_closure_flag
 common/Keyframe keyframe_new
