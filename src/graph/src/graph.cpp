@@ -1,4 +1,5 @@
 #include <graph.hpp>
+//#include <scanner/scanner.hpp>
 
 gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
@@ -30,7 +31,7 @@ void prior_factor(common::Registration input)
     // Define new KF
     input.keyframe_new.id = keyframe_IDs;
     // input.keyframe_new.pose_odom = // TODO: get odometry pose from odometry_pose service.
-    input.keyframe_new.pose_opti = create_Pose2DWithCovariance_msg(x_prior, y_prior, th_prior, Q);
+    //input.keyframe_new.pose_opti = create_Pose2DWithCovariance_msg(x_prior, y_prior, th_prior, Q); // TODO fix this
     keyframes.push_back(input.keyframe_new);
 
     // Add factor and prior to the graph
