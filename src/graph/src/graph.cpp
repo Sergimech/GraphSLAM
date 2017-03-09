@@ -5,9 +5,13 @@ gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
 std::vector<common::Keyframe> keyframes; // JS: this vector will be continuously resized. Better use std::deque?
+int keyframe_IDs; // Simple ID factory.
+
+// #### TUNING CONSTANTS START
 double sigma_xy_prior = 0.1; // TODO migrate to rosparams
 double sigma_th_prior = 0.1; // TODO migrate to rosparams
-int keyframe_IDs;
+int keyframes_to_skip_in_loop_closing = 10; // TODO migrate to rosparams
+// #### TUNING CONSTANTS END
 
 void prior_factor(common::Registration input)
 {
@@ -133,8 +137,8 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
   if(!keyframes.empty()) {
     std::vector<double> distances;
 
-    if(keyframes.size() > 10) {
-      for(int i = 0; i < keyframes.size() - 10; i++) {
+    if(keyframes.size() > keyframes_to_skip_in_loop_closing) {
+      for(int i = 0; i < keyframes.size() - keyframes_to_skip_in_loop_closing; i++) {
 	double x1 = req.keyframe_last.pose_opti.pose.x;
 	double y1 = req.keyframe_last.pose_opti.pose.y;
 	double x2 = keyframes[i].pose_opti.pose.x;
