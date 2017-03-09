@@ -1,6 +1,8 @@
 #include <graph.hpp>
 //#include <scanner/scanner.hpp>
+#include <common/Keyframes.h>
 
+ros::Publisher keyframes_pub;
 gtsam::NonlinearFactorGraph graph;
 gtsam::Values initial;
 common::Pose2DWithCovariance pose_opt;
@@ -12,6 +14,15 @@ double sigma_xy_prior = 0.1; // TODO migrate to rosparams
 double sigma_th_prior = 0.1; // TODO migrate to rosparams
 int keyframes_to_skip_in_loop_closing = 10; // TODO migrate to rosparams
 // #### TUNING CONSTANTS END
+
+void publish_keyframes() {
+  common::Keyframes output;
+  for(int i = 0; i < keyframes.size(); i++) {
+    output.keyframes.push_back(keyframes[i]);
+  }
+
+  keyframes_pub.publish(output);
+}
 
 void prior_factor(common::Registration input)
 {
@@ -168,7 +179,7 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
 
 void registration_callback(const common::Registration& input) {
   ROS_INFO("###REGISTRATION CALLBACK STARTED.###");
-
+  
   if(input.first_frame_flag) {
       prior_factor(input);
   }
@@ -180,6 +191,7 @@ void registration_callback(const common::Registration& input) {
           loop_factor(input);
       }
       solve();
+      publish_keyframes();
   }
 
   ROS_INFO("###REGISTRATION CALLBACK FINISHED.###");
@@ -192,6 +204,7 @@ int main(int argc, char** argv) {
   // Init ID factory
   keyframe_IDs = 0;
 
+  keyframes_pub = n.advertise<common::Keyframes>("/graph/keyframes", 1);
   ros::Subscriber registration_sub = n.subscribe("/scanner/registration", 1, registration_callback);
   ros::ServiceServer last_keyframe_service = n.advertiseService("/graph/last_keyframe", last_keyframe);
   ros::ServiceServer closest_keyframe_service = n.advertiseService("/graph/closest_keyframe", closest_keyframe);

@@ -65,37 +65,38 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
     output.keyframe_flag = false;
   }
 
-//  ROS_INFO("GICP FINISHED.");
+  //  ROS_INFO("GICP FINISHED.");
   return output;
 }
 
 void scanner_callback(const sensor_msgs::LaserScan& input) {
 
-	// clear flags:
-    common::Registration output;
-    output.first_frame_flag = false;
-    output.keyframe_flag = false;
-    output.loop_closure_flag = false;
+  // clear flags:
+  common::Registration output;
+  output.first_frame_flag = false;
+  output.keyframe_flag = false;
+  output.loop_closure_flag = false;
 
-    // request last KF
+  // request last KF
   common::LastKeyframe keyframe_last_request;
   bool keyframe_last_request_returned = keyframe_last_client.call(keyframe_last_request);
 
   // Case of first frame
   if(!keyframe_last_request_returned) {
-      ROS_INFO("### NO LAST KEYFRAME FOUND ###");
-//    sensor_msgs::LaserScan prior_scan = input;
+    ROS_INFO("### NO LAST KEYFRAME FOUND ###");
+    //    sensor_msgs::LaserScan prior_scan = input;
 
-//    if(keyframe_IDs == 0) {
-//      for(int i = 0; i < prior_scan.ranges.size(); i++) {
-//	prior_scan.ranges[i] += 0.5;
-//      }
-//    }
+    //    if(keyframe_IDs == 0) {
+    //      for(int i = 0; i < prior_scan.ranges.size(); i++) {
+    //	prior_scan.ranges[i] += 0.5;
+    //      }
+    //    }
 
-      // Set flags, assign pointcloud, and publish
+    // Set flags, assign pointcloud, and publish
     output.first_frame_flag = true;
     output.keyframe_flag = false;
     output.loop_closure_flag = false;
+    output.keyframe_new.scan = input;
     output.keyframe_new.pointcloud = scan_to_pointcloud(input);
     registration_pub.publish(output);
   }
@@ -104,17 +105,18 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
   if(keyframe_last_request_returned) {
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
     sensor_msgs::PointCloud2 keyframe_last_pointcloud = keyframe_last_request.response.keyframe_last.pointcloud;
-//    keyframe_IDs = keyframe_last_request.response.keyframe_last.id + 1;
+    //    keyframe_IDs = keyframe_last_request.response.keyframe_last.id + 1;
     
-//    ROS_INFO("GICP registration_last STARTED");
+    //    ROS_INFO("GICP registration_last STARTED");
     common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
-//    ROS_INFO("GICP registration_last FINISHED");
+    //    ROS_INFO("GICP registration_last FINISHED");
     
     output.keyframe_flag = registration_last.keyframe_flag;
     output.loop_closure_flag = false;
     // output.keyframe_new.id = keyframe_IDs; // we do not set new IDs here
     output.keyframe_new.ts = input.header.stamp;
     output.keyframe_new.pointcloud = input_pointcloud;
+    output.keyframe_new.scan = input;
     output.keyframe_last = keyframe_last_request.response.keyframe_last;
     output.factor_new.id_1 = keyframe_last_request.response.keyframe_last.id;
     output.factor_new.id_2 = output.keyframe_new.id;
@@ -123,29 +125,29 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     // Check for loop closures only if on Keyframes
     if (registration_last.keyframe_flag){
           
-        common::ClosestKeyframe keyframe_closest_request;
-        keyframe_closest_request.request.keyframe_last = keyframe_last_request.response.keyframe_last;
-        bool keyframe_closest_request_returned = keyframe_closest_client.call(keyframe_closest_request);
+      common::ClosestKeyframe keyframe_closest_request;
+      keyframe_closest_request.request.keyframe_last = keyframe_last_request.response.keyframe_last;
+      bool keyframe_closest_request_returned = keyframe_closest_client.call(keyframe_closest_request);
 
-        if(keyframe_closest_request_returned) {
-        	// get pointcloud and  register
-            sensor_msgs::PointCloud2 keyframe_closest_pointcloud =
-                    keyframe_closest_request.response.keyframe_closest.pointcloud;
-//            ROS_INFO("GICP registration_closest STARTED");
-            common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
-//            ROS_INFO("GICP registration_closest FINISHED");
+      if(keyframe_closest_request_returned) {
+	// get pointcloud and  register
+	sensor_msgs::PointCloud2 keyframe_closest_pointcloud =
+	  keyframe_closest_request.response.keyframe_closest.pointcloud;
+	//            ROS_INFO("GICP registration_closest STARTED");
+	common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
+	//            ROS_INFO("GICP registration_closest FINISHED");
 
-            // compute factor things
-            ROS_INFO("factor_loop.id_1 = %d, factor_loop.id_2 = %d",
-                     keyframe_last_request.response.keyframe_last.id,
-					 keyframe_closest_request.response.keyframe_closest.id);
-            output.loop_closure_flag = true;
-            output.keyframe_last = keyframe_last_request.response.keyframe_last;
-            output.keyframe_loop = keyframe_closest_request.response.keyframe_closest;
-            output.factor_loop.id_1 = keyframe_last_request.response.keyframe_last.id;
-            output.factor_loop.id_2 = keyframe_closest_request.response.keyframe_closest.id;
-            output.factor_loop.delta = registration_closest.factor_loop.delta;
-        }
+	// compute factor things
+	ROS_INFO("factor_loop.id_1 = %d, factor_loop.id_2 = %d",
+		 keyframe_last_request.response.keyframe_last.id,
+		 keyframe_closest_request.response.keyframe_closest.id);
+	output.loop_closure_flag = true;
+	output.keyframe_last = keyframe_last_request.response.keyframe_last;
+	output.keyframe_loop = keyframe_closest_request.response.keyframe_closest;
+	output.factor_loop.id_1 = keyframe_last_request.response.keyframe_last.id;
+	output.factor_loop.id_2 = keyframe_closest_request.response.keyframe_closest.id;
+	output.factor_loop.delta = registration_closest.factor_loop.delta;
+      }
     }
     
     registration_pub.publish(output);
