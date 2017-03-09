@@ -10,29 +10,29 @@ const double converged_fitness_threshold = 0.15; // TODO migrate to rosparams
 double k_disp_disp = 0.1, k_rot_disp = 0.1, k_rot_rot = 0.1; // TODO migrate to rosparams
 
 sensor_msgs::PointCloud2 scan_to_pointcloud(sensor_msgs::LaserScan input) {
-  ROS_INFO("SCAN TO POINTCLOUD STARTED.");
+//  ROS_INFO("SCAN TO POINTCLOUD STARTED.");
   laser_geometry::LaserProjection projector;
   sensor_msgs::PointCloud2 output;
   projector.projectLaser(input, output);
 
-  ROS_INFO("SCAN TO POINTCLOUD FINISHED.");
+//  ROS_INFO("SCAN TO POINTCLOUD FINISHED.");
   return output;
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr format_pointcloud(sensor_msgs::PointCloud2 input) {
-  ROS_INFO("FORMAT POINTCLOUD STARTED.");
+//  ROS_INFO("FORMAT POINTCLOUD STARTED.");
   pcl::PCLPointCloud2 pcl2_pointcloud;
   pcl_conversions::toPCL(input, pcl2_pointcloud);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr output(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromPCLPointCloud2(pcl2_pointcloud, *output);
   
-  ROS_INFO("FORMAT POINTCLOUD FINISHED.");
+//  ROS_INFO("FORMAT POINTCLOUD FINISHED.");
   return output;
 }
 
 common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCloud2 input_2) {
-  ROS_INFO("GICP STARTED.");
+//  ROS_INFO("GICP STARTED.");
   pcl::PointCloud<pcl::PointXYZ>::Ptr pointcloud_1 = format_pointcloud(input_1);
   pcl::PointCloud<pcl::PointXYZ>::Ptr pointcloud_2 = format_pointcloud(input_2);
   
@@ -65,23 +65,50 @@ common::Registration gicp(sensor_msgs::PointCloud2 input_1, sensor_msgs::PointCl
     output.keyframe_flag = false;
   }
 
-  ROS_INFO("GICP FINISHED.");
+//  ROS_INFO("GICP FINISHED.");
   return output;
 }
 
 void scanner_callback(const sensor_msgs::LaserScan& input) {
+
+	// clear flags:
+    common::Registration output;
+    output.first_frame_flag = false;
+    output.keyframe_flag = false;
+    output.loop_closure_flag = false;
+
+    // request last KF
   common::LastKeyframe keyframe_last_request;
   bool keyframe_last_request_returned = keyframe_last_client.call(keyframe_last_request);
 
+  // Case of first frame
+  if(!keyframe_last_request_returned) {
+      ROS_INFO("### NO LAST KEYFRAME FOUND ###");
+//    sensor_msgs::LaserScan prior_scan = input;
+
+//    if(keyframe_IDs == 0) {
+//      for(int i = 0; i < prior_scan.ranges.size(); i++) {
+//	prior_scan.ranges[i] += 0.5;
+//      }
+//    }
+
+      // Set flags, assign pointcloud, and publish
+    output.first_frame_flag = true;
+    output.keyframe_flag = false;
+    output.loop_closure_flag = false;
+    output.keyframe_new.pointcloud = scan_to_pointcloud(input);
+    registration_pub.publish(output);
+  }
+
+  // Case of other frames
   if(keyframe_last_request_returned) {
-    common::Registration output;
     sensor_msgs::PointCloud2 input_pointcloud = scan_to_pointcloud(input);
     sensor_msgs::PointCloud2 keyframe_last_pointcloud = keyframe_last_request.response.keyframe_last.pointcloud;
 //    keyframe_IDs = keyframe_last_request.response.keyframe_last.id + 1;
     
-    ROS_INFO("GICP registration_last STARTED");
+//    ROS_INFO("GICP registration_last STARTED");
     common::Registration registration_last = gicp(input_pointcloud, keyframe_last_pointcloud);
-    ROS_INFO("GICP registration_last FINISHED");
+//    ROS_INFO("GICP registration_last FINISHED");
     
     output.keyframe_flag = registration_last.keyframe_flag;
     output.loop_closure_flag = false;
@@ -103,9 +130,9 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
         	// get pointcloud and  register
             sensor_msgs::PointCloud2 keyframe_closest_pointcloud =
                     keyframe_closest_request.response.keyframe_closest.pointcloud;
-            ROS_INFO("GICP registration_closest STARTED");
+//            ROS_INFO("GICP registration_closest STARTED");
             common::Registration registration_closest = gicp(keyframe_closest_pointcloud, keyframe_last_pointcloud);
-            ROS_INFO("GICP registration_closest FINISHED");
+//            ROS_INFO("GICP registration_closest FINISHED");
 
             // compute factor things
             ROS_INFO("factor_loop.id_1 = %d, factor_loop.id_2 = %d",
@@ -121,24 +148,6 @@ void scanner_callback(const sensor_msgs::LaserScan& input) {
     registration_pub.publish(output);
   }
 
-  if(!keyframe_last_request_returned) {
-      ROS_INFO("No last keyframe provided ########################################################");
-//    sensor_msgs::LaserScan prior_scan = input;
-
-//    if(keyframe_IDs == 0) {
-//      for(int i = 0; i < prior_scan.ranges.size(); i++) {
-//	prior_scan.ranges[i] += 0.5;
-//      }
-//    }
-
-      // Set flags, assign pointcloud, and publish
-    common::Registration output;
-    output.first_keyframe_flag = true;
-    output.keyframe_flag = false;
-    output.loop_closure_flag = false;
-    output.keyframe_new.pointcloud = scan_to_pointcloud(input);
-    registration_pub.publish(output);
-  }
 }
 
 int main(int argc, char** argv) {

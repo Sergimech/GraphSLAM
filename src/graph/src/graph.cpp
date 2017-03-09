@@ -11,6 +11,7 @@ int keyframe_IDs;
 
 void prior_factor(common::Registration input)
 {
+	ROS_INFO("PRIOR FACTOR STARTED");
     // Advance keyframe ID factory
     keyframe_IDs++;
 
@@ -37,6 +38,8 @@ void prior_factor(common::Registration input)
     // Add factor and prior to the graph
     graph.add(gtsam::PriorFactor<gtsam::Pose2>(input.keyframe_new.id, pose_prior, noise_prior));
     initial.insert(input.keyframe_new.id, pose_prior);
+
+    ROS_INFO("PRIOR FACTOR ID=%d FINISHED", input.keyframe_new.id);
 }
 
 void new_factor(common::Registration input)
@@ -162,7 +165,7 @@ bool closest_keyframe(common::ClosestKeyframe::Request &req, common::ClosestKeyf
 void registration_callback(const common::Registration& input) {
   ROS_INFO("###REGISTRATION CALLBACK STARTED.###");
 
-  if(input.keyframe_new.id == 0) {
+  if(input.first_frame_flag) {
       prior_factor(input);
   }
 
