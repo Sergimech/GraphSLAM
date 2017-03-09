@@ -177,7 +177,7 @@ void registration_callback(const common::Registration& input) {
       }
   }
 
-  //solve();
+  solve();
   ROS_INFO("###REGISTRATION CALLBACK FINISHED.###");
 }
 
